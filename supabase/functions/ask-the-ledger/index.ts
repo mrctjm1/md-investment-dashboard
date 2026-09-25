@@ -3,10 +3,11 @@
 // this function reads the live data and holds the Anthropic key server-side.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import Anthropic from "npm:@anthropic-ai/sdk";
+import Anthropic, { toFile } from "npm:@anthropic-ai/sdk";
 
 const MODEL = "claude-sonnet-5";
 const MAX_QUESTION_CHARS = 500;
+const MAX_PAUSE_RESUMES = 3;
 const ALLOWED_ORIGINS = new Set([
   "https://mrctjm1.github.io",
   "http://127.0.0.1:8765", // local testing
@@ -22,7 +23,23 @@ const supabase = createClient(
   { db: { schema: "md_dashboard" } },
 );
 
-const SYSTEM_PROMPT = `You are answering questions about a real (not illustrative) dataset of Maryland investment records -- both private-sector capital investments and public-sector funding awards (grants, bonds, contracts, loans, tax credits) -- collected by a research pipeline with mandatory confidence and source tagging on every record, but no human review yet for some subsets. Answer ONLY from the records provided. Be honest about gaps and low-confidence entries, and be clear about which figures are private capital vs. public funding when relevant. Be concise unless the question needs a list. Reply in plain text, not Markdown.`;
+const SYSTEM_PROMPT = `You answer questions about a real (not illustrative) dataset of Maryland investment records -- both private-sector capital investments and public-sector funding awards (grants, bonds, contracts, loans, tax credits) -- collected by a research pipeline with mandatory confidence and source tagging on every record, but no human review yet for some subsets.
+
+The full dataset is attached as records.csv, one row per record. Always compute answers with code (e.g. pandas) against that file -- never estimate counts, totals, or rankings. Columns:
+- type: private_investment (a company's own capital decision) or public_investment (a government funding award)
+- company: company or award recipient; name: project or award name
+- category: industry sector (private) or purpose (public)
+- state, county, place: location. "Maryland (county unspecified)" means the source only confirmed the state.
+- record_type (private only): completed_transaction, future_projection, multiyear_program, recurring_subsidy_award, approved_contested
+- funding_mechanism, awarding_level, awarding_agency, program_name, fiscal_year: public awards only
+- status, completion_stage: progress of the project
+- amount_usd: dollars; blank means undisclosed (not zero)
+- confidence: high / medium / low confidence in the dollar figure; amount_note explains it
+- jobs_new, jobs_retained, jobs_construction, jobs_note: job figures where known
+- is_volatile: true if the figure is disputed or likely to change
+- date: announcement or award date
+
+Answer ONLY from this data. Be honest about gaps and low-confidence entries, and be clear about which figures are private capital vs. public funding. Keep the final answer concise (a list if the question needs one), in plain text, not Markdown, and don't describe your code or method unless asked.`;
 
 function corsHeaders(origin: string | null): Record<string, string> {
   return {
@@ -40,9 +57,26 @@ function json(body: unknown, status: number, origin: string | null): Response {
   });
 }
 
-// Deterministic (ordered by id, fixed field order) so the serialized dataset is
-// byte-identical between requests and the prompt cache actually hits.
-async function loadCompactRecords(): Promise<string> {
+const CSV_COLUMNS: [string, string][] = [
+  ["type", "type"], ["company", "company"], ["name", "name"], ["category", "category"],
+  ["state", "state"], ["county", "county"], ["place", "place"],
+  ["record_type", "recordType"], ["funding_mechanism", "fundingMechanism"],
+  ["awarding_level", "awardingLevel"], ["awarding_agency", "awardingAgency"],
+  ["program_name", "programName"], ["fiscal_year", "fiscalYear"],
+  ["status", "status"], ["completion_stage", "completionStage"],
+  ["amount_usd", "amount"], ["confidence", "confidence"], ["amount_note", "amountNote"],
+  ["jobs_new", "jobsNew"], ["jobs_retained", "jobsRetained"],
+  ["jobs_construction", "jobsConstruction"], ["jobs_note", "jobsNote"],
+  ["is_volatile", "isVolatile"], ["date", "dateAnnounced"],
+];
+
+function csvCell(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+
+async function loadRecordsCsv(): Promise<string> {
   const PAGE = 1000;
   const rows: Record<string, unknown>[] = [];
   for (let from = 0; ; from += PAGE) {
@@ -55,17 +89,9 @@ async function loadCompactRecords(): Promise<string> {
     rows.push(...data);
     if (data.length < PAGE) break;
   }
-  const compact = rows.map((r) => ({
-    type: r.type, company: r.company, name: r.name, category: r.category,
-    state: r.state, county: r.county, place: r.place,
-    record_type: r.recordType, funding_mechanism: r.fundingMechanism,
-    awarding_level: r.awardingLevel, program_name: r.programName,
-    status: r.status ?? r.completionStage, amount_usd: r.amount,
-    confidence: r.confidence, amount_note: r.amountNote,
-    jobs_new: r.jobsNew, jobs_retained: r.jobsRetained, jobs_construction: r.jobsConstruction,
-    is_volatile: r.isVolatile, date: r.dateAnnounced,
-  }));
-  return `RECORDS (${compact.length}):\n${JSON.stringify(compact)}`;
+  const lines = [CSV_COLUMNS.map(([header]) => header).join(",")];
+  for (const r of rows) lines.push(CSV_COLUMNS.map(([, key]) => csvCell(r[key])).join(","));
+  return lines.join("\n") + "\n";
 }
 
 Deno.serve(async (req) => {
@@ -86,29 +112,49 @@ Deno.serve(async (req) => {
     return json({ error: `Please keep questions under ${MAX_QUESTION_CHARS} characters.` }, 400, origin);
   }
 
+  let fileId: string | null = null;
   try {
-    const records = await loadCompactRecords();
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      output_config: { effort: "medium" },
-      system: [
-        { type: "text", text: SYSTEM_PROMPT },
-        // Everything up to here is identical across questions -> cached.
-        { type: "text", text: records, cache_control: { type: "ephemeral" } },
-      ],
-      messages: [{ role: "user", content: question.trim() }],
+    const csv = await loadRecordsCsv();
+    const uploaded = await anthropic.files.upload({
+      file: await toFile(new TextEncoder().encode(csv), "records.csv", { type: "text/csv" }),
     });
+    fileId = uploaded.id;
+
+    const messages: Anthropic.MessageParam[] = [{
+      role: "user",
+      content: [
+        { type: "text", text: question.trim() },
+        { type: "container_upload", file_id: fileId },
+      ],
+    }];
+    let response: Anthropic.Message;
+    for (let resumes = 0; ; resumes++) {
+      response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 16000,
+        output_config: { effort: "medium" },
+        system: SYSTEM_PROMPT,
+        tools: [{ type: "code_execution_20260521", name: "code_execution" }],
+        messages,
+      });
+      // Long server-side tool runs pause; resend the turn as-is to continue.
+      if (response.stop_reason !== "pause_turn" || resumes >= MAX_PAUSE_RESUMES) break;
+      messages.push({ role: "assistant", content: response.content });
+    }
+    console.log(JSON.stringify({ usage: response.usage, stop_reason: response.stop_reason }));
 
     if (response.stop_reason === "refusal") {
       return json({ answer: "Sorry, I can't answer that question." }, 200, origin);
     }
+    // The final answer is the text after the last tool call (earlier text is
+    // the model narrating its work).
+    const lastTool = response.content.findLastIndex((b) => b.type !== "text");
     const text = response.content
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { text: string }).text)
+      .slice(lastTool + 1)
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
       .join("\n")
       .trim();
-    console.log(JSON.stringify({ usage: response.usage, stop_reason: response.stop_reason }));
     return json({ answer: text || "No answer returned." }, 200, origin);
   } catch (err) {
     console.error(err);
@@ -116,5 +162,7 @@ Deno.serve(async (req) => {
       return json({ error: "The service is busy right now -- please try again in a minute." }, 503, origin);
     }
     return json({ error: "Something went wrong answering that question." }, 500, origin);
+  } finally {
+    if (fileId) anthropic.files.delete(fileId).catch((e) => console.error("file cleanup failed", e));
   }
 });
