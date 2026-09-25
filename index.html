@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Place-Based Investment Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#14213D; --parchment:#F5F1E6; --parchment-deep:#ECE5D3;
+    --charcoal:#211D1A; --slate:#6B6459; --gold:#96721E; --rust:#8B3A2C;
+    --forest:#3F6B4D; --line:#D9D0BB; --white:#FFFDF8;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--parchment); color:var(--charcoal); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.5; }
+  .serif { font-family:"Newsreader",Georgia,serif; }
+  .mono { font-family:"IBM Plex Mono",monospace; }
+  a { color:var(--gold); }
+
+  /* ---------- Header ---------- */
+  header.masthead { background:var(--ink); color:var(--parchment); padding:20px 32px 0 32px; }
+  .masthead-inner { max-width:1320px; margin:0 auto; }
+  .masthead-top { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; padding-bottom:14px; }
+  .masthead-title { font-size:2rem; font-weight:500; margin:0; }
+  .masthead-sub { margin:4px 0 0 0; color:#C9BFA0; font-size:0.86rem; max-width:56ch; }
+  .masthead-nav { display:flex; gap:18px; align-items:center; font-size:0.8rem; }
+  .masthead-nav a { color:var(--parchment); text-decoration:none; border-bottom:1px solid rgba(245,241,230,0.4); padding-bottom:2px; }
+  .masthead-nav a:hover { border-color:var(--gold); color:var(--gold); }
+  .masthead-nav .map-link { background:var(--gold); color:var(--ink); font-weight:600; padding:6px 14px; border-radius:3px; border:none; }
+  .masthead-nav .map-link:hover { background:#a9843a; }
+
+  /* ---------- Ask bar ---------- */
+  .ask-band { background:#0F1830; padding:16px 32px; }
+  .ask-band-inner { max-width:1320px; margin:0 auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .ask-label { color:var(--gold); font-weight:600; font-size:0.95rem; white-space:nowrap; }
+  .ask-form { flex:1; min-width:280px; display:flex; gap:8px; }
+  .ask-input { flex:1; font-family:inherit; font-size:0.92rem; padding:10px 14px; border:1px solid #3a4569; background:#182346; color:var(--parchment); border-radius:4px; }
+  .ask-input::placeholder { color:#8b93b5; }
+  .ask-input:focus { outline:none; border-color:var(--gold); }
+  .ask-btn { background:var(--gold); color:var(--ink); border:none; padding:10px 20px; border-radius:4px; font-weight:700; cursor:pointer; white-space:nowrap; font-size:0.9rem; }
+  .ask-btn:hover { background:#a9843a; }
+  .ask-btn:disabled { opacity:0.6; cursor:default; }
+  .ask-examples { max-width:1320px; margin:8px auto 0 auto; font-size:0.72rem; color:#8b93b5; }
+  .ask-examples button { background:none; border:none; color:#c2a15a; text-decoration:underline; cursor:pointer; font-size:0.72rem; padding:0; font-family:inherit; }
+
+  /* ---------- Method banner ---------- */
+  .method-banner { background:#FBF6E9; border-bottom:1px solid var(--line); padding:9px 32px; font-size:0.75rem; color:var(--slate); text-align:center; }
+  .method-banner b { color:var(--rust); }
+
+  /* ---------- Stat row ---------- */
+  .stat-band { background:var(--white); border-bottom:1px solid var(--line); padding:18px 32px; }
+  .stat-band-inner { max-width:1320px; margin:0 auto; display:flex; gap:0; flex-wrap:wrap; }
+  .stat-card { flex:1 1 200px; padding:0 24px; border-left:1px solid var(--line); }
+  .stat-card:first-child { border-left:none; padding-left:0; }
+  .stat-card .num { font-size:1.9rem; font-weight:600; font-family:"IBM Plex Mono",monospace; color:var(--ink); }
+  .stat-card .label { font-size:0.72rem; color:var(--slate); margin-top:3px; text-transform:uppercase; letter-spacing:0.03em; }
+  .stat-card .sub { font-size:0.68rem; color:var(--slate); font-style:italic; margin-top:2px; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar-wrap { background:var(--parchment-deep); border-bottom:1px solid var(--line); }
+  .toolbar { max-width:1320px; margin:0 auto; padding:12px 32px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  select { font-family:inherit; font-size:0.8rem; padding:6px 10px; border:1px solid var(--line); background:var(--white); border-radius:3px; color:var(--charcoal); }
+  .result-count { margin-left:auto; font-size:0.78rem; color:var(--slate); }
+
+  /* ---------- Main / card grid ---------- */
+  main { max-width:1320px; margin:0 auto; padding:22px 32px 60px 32px; }
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; }
+  .inv-card { background:var(--white); border:1px solid var(--line); border-radius:5px; padding:16px 18px; cursor:pointer; transition:box-shadow 0.15s, border-color 0.15s; display:flex; flex-direction:column; gap:8px; }
+  .inv-card:hover { box-shadow:0 3px 12px rgba(20,33,61,0.12); border-color:var(--gold); }
+  .inv-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .inv-card-company { font-weight:700; font-size:1rem; line-height:1.25; }
+  .inv-card-place { font-size:0.76rem; color:var(--slate); margin-top:2px; }
+  .inv-card-amt { text-align:right; font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:1.05rem; white-space:nowrap; color:var(--ink); }
+  .inv-card-amt.none { color:var(--slate); font-weight:400; font-size:0.8rem; }
+  .inv-card-badges { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { font-size:0.6rem; font-weight:600; padding:2px 7px; border-radius:10px; }
+  .tag.sector { background:var(--parchment-deep); color:var(--slate); }
+  .conf-pill { font-size:0.6rem; padding:2px 7px; border-radius:10px; font-weight:600; }
+  .conf-high { background:#DCE8DF; color:var(--forest); }
+  .conf-medium { background:#EFE3C0; color:var(--gold); }
+  .conf-low { background:#F3DED8; color:var(--rust); }
+  .volatile-pill { font-size:0.6rem; background:var(--rust); color:var(--white); padding:2px 7px; border-radius:10px; font-weight:600; }
+  .inv-card-desc { font-size:0.82rem; color:#3A342C; line-height:1.4; }
+  .inv-card-jobs { font-size:0.72rem; color:var(--slate); display:flex; gap:10px; flex-wrap:wrap; }
+  .inv-card-jobs b { color:var(--charcoal); }
+
+  .show-more { text-align:center; padding:24px 0 0 0; }
+  .show-more button { background:var(--ink); color:var(--white); border:none; padding:9px 20px; border-radius:3px; cursor:pointer; font-size:0.85rem; }
+  .show-more button:hover { background:#1d2c52; }
+  .empty-state { text-align:center; padding:60px 0; color:var(--slate); font-size:0.95rem; }
+
+  /* ---------- Detail page ---------- */
+  .detail-page { max-width:820px; margin:0 auto; padding:24px 32px 80px 32px; }
+  .back-link { font-size:0.82rem; color:var(--gold); cursor:pointer; text-decoration:underline; display:inline-block; margin-bottom:18px; background:none; border:none; font-family:inherit; padding:0; }
+  .detail-badges { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .detail-title { font-size:1.7rem; font-weight:600; margin:0 0 6px 0; }
+  .detail-sub { font-size:0.9rem; color:var(--slate); margin-bottom:24px; }
+  .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0; border:1px solid var(--line); border-radius:4px; margin-bottom:20px; background:var(--white); }
+  .detail-metric { padding:14px 16px; border-left:1px solid var(--line); }
+  .detail-metric:first-child { border-left:none; }
+  .detail-metric .v { font-size:1.15rem; font-weight:600; }
+  .detail-metric .l { font-size:0.68rem; color:var(--slate); margin-top:2px; }
+  .detail-section { margin-bottom:20px; }
+  .detail-section h4 { font-size:0.72rem; color:var(--slate); text-transform:uppercase; letter-spacing:0.04em; margin:0 0 8px 0; }
+  .detail-section p { font-size:0.94rem; line-height:1.6; margin:0; }
+  .detail-note-box { border-radius:4px; padding:12px 16px; font-size:0.88rem; margin-bottom:10px; }
+  .detail-note-box.amount { background:#FBF0EC; border-left:4px solid var(--rust); color:#5A2A20; }
+  .detail-note-box.jobs { background:#EEF3EE; border-left:4px solid var(--forest); color:#2A4A34; }
+  .detail-sources li { margin-bottom:6px; font-size:0.88rem; }
+  .detail-sources a { color:var(--gold); }
+
+  /* ---------- Ask result page ---------- */
+  .ask-page { max-width:820px; margin:0 auto; padding:24px 32px 80px 32px; }
+  .ask-page .q-box { font-size:1.3rem; font-weight:600; margin:6px 0 20px 0; font-family:"Newsreader",Georgia,serif; }
+  .ask-answer-box { background:var(--white); border:1px solid var(--gold); border-left:4px solid var(--gold); padding:18px 22px; border-radius:4px; font-size:0.98rem; white-space:pre-wrap; line-height:1.6; }
+  .ask-note { margin-top:12px; font-size:0.72rem; color:var(--slate); }
+  .ask-page-form { display:flex; gap:8px; margin-top:26px; max-width:600px; }
+
+  footer { max-width:1320px; margin:0 auto; padding:16px 32px 60px 32px; font-size:0.68rem; color:var(--slate); border-top:1px solid var(--line); }
+
+  #detailView, #askView { display:none; }
+</style>
+<style>
+/* ===== Map page styles ===== */
+  :root {
+    --ink:#14213D; --parchment:#F5F1E6; --parchment-deep:#ECE5D3;
+    --charcoal:#211D1A; --slate:#6B6459; --gold:#96721E; --rust:#8B3A2C;
+    --forest:#3F6B4D; --line:#D9D0BB; --white:#FFFDF8; --map-land:#DCD3B8;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--parchment); color:var(--charcoal); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.5; }
+  .serif { font-family:"Newsreader",Georgia,serif; }
+  .mono { font-family:"IBM Plex Mono",monospace; }
+
+  header.masthead { background:var(--ink); color:var(--parchment); padding:24px 32px 0 32px; }
+  .masthead-top { display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px; max-width:1320px; margin:0 auto; padding-bottom:16px; border-bottom:1px solid rgba(245,241,230,0.25); }
+  .masthead-title { font-size:2.1rem; font-weight:500; margin:0; }
+  .masthead-sub { margin:5px 0 0 0; color:#C9BFA0; font-size:0.88rem; max-width:50ch; }
+  .masthead-meta { text-align:right; font-size:0.7rem; color:#B8AE8E; }
+  .stat-row { max-width:1320px; margin:0 auto; display:flex; gap:0; padding:14px 0; flex-wrap:wrap; }
+  .stat { flex:1 1 120px; padding:0 16px; border-left:1px solid rgba(245,241,230,0.2); }
+  .stat:first-child { border-left:none; padding-left:0; }
+  .stat .num { font-size:1.25rem; font-weight:500; }
+  .stat .label { font-size:0.62rem; color:#B8AE8E; margin-top:2px; }
+
+  .method-banner { background:#FBF6E9; border-bottom:1px solid var(--line); padding:10px 32px; font-size:0.76rem; color:var(--slate); }
+  .method-banner b { color:var(--rust); }
+
+  .toolbar { max-width:1320px; margin:0 auto; padding:12px 32px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  select, .ask-input { font-family:inherit; font-size:0.8rem; padding:6px 10px; border:1px solid var(--line); background:var(--white); border-radius:3px; color:var(--charcoal); }
+  .ask-wrap { margin-left:auto; display:flex; gap:8px; flex:1 1 300px; max-width:480px; }
+  .ask-input { flex:1; }
+  .ask-btn { background:var(--gold); color:var(--white); border:none; padding:6px 14px; border-radius:3px; font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .ask-btn:disabled { opacity:0.6; }
+  .example-qs { max-width:1320px; margin:0 auto; padding:0 32px 8px 32px; font-size:0.74rem; color:var(--slate); }
+  .example-qs button { background:none; border:none; color:var(--gold); text-decoration:underline; cursor:pointer; font-size:0.74rem; padding:0; font-family:inherit; }
+  .answer-panel { max-width:1320px; margin:0 auto 10px auto; padding:0 32px; display:none; }
+  .answer-panel.visible { display:block; }
+  .answer-box { background:var(--white); border:1px solid var(--gold); border-left:4px solid var(--gold); padding:13px 17px; border-radius:3px; font-size:0.88rem; }
+  .answer-box .q { font-weight:600; margin-bottom:6px; }
+  .answer-box .a { white-space:pre-wrap; }
+  .answer-box .note { margin-top:8px; font-size:0.68rem; color:var(--slate); }
+
+  #mapPage main { max-width:1320px; margin:0 auto; padding:6px 32px 60px 32px; display:grid; grid-template-columns:1fr 420px; gap:24px; }
+  @media (max-width:980px) { #mapPage main { grid-template-columns:1fr; } }
+  .panel-title { font-size:0.72rem; color:var(--slate); margin-bottom:8px; display:flex; justify-content:space-between; align-items:baseline; }
+  .panel-title .hint { font-style:italic; font-weight:400; }
+
+  .map-card { background:var(--white); border:1px solid var(--line); border-radius:4px; padding:14px; position:relative; }
+  .map-tooltip { display:none; position:absolute; z-index:20; background:var(--ink); color:var(--parchment); font-size:0.76rem; padding:7px 10px; border-radius:3px; pointer-events:none; max-width:220px; line-height:1.4; box-shadow:0 3px 10px rgba(0,0,0,0.25); }
+  .legend-scale { display:flex; align-items:center; gap:6px; font-size:0.68rem; color:var(--slate); margin-top:8px; }
+  .legend-scale-bar { flex:1; max-width:160px; height:8px; border-radius:2px; background:linear-gradient(to right, #DCD3B8, #14213D); }
+  #map_svg { width:100%; height:auto; display:block; cursor:default; }
+  .dot { cursor:pointer; stroke:#fff; stroke-width:1; opacity:0.88; transition:opacity 0.1s, r 0.1s; }
+  .dot:hover { opacity:1; stroke-width:2; }
+  .dot.dimmed { opacity:0.15; }
+  .cluster-dot { fill:var(--ink); stroke:#fff; stroke-width:2; cursor:pointer; opacity:0.9; transition:opacity 0.1s; }
+  .cluster-dot:hover { opacity:1; }
+  .cluster-label { fill:#fff; font-family:"IBM Plex Mono",monospace; font-weight:600; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
+  .county-cell { cursor:pointer; transition:fill 0.15s, stroke-width 0.15s; }
+  .state-shape { cursor:pointer; transition:fill 0.15s; }
+  .state-shape:hover { fill:var(--parchment-deep) !important; }
+  .county-cell:hover { fill:rgba(150,114,30,0.10) !important; }
+  .county-header { background:var(--white); border:1px solid var(--gold); border-left:4px solid var(--gold); border-radius:3px; padding:10px 14px; margin-bottom:12px; }
+  .county-header-title { font-size:1.1rem; font-weight:600; margin:2px 0 6px 0; }
+  .county-header-stats { display:flex; gap:16px; font-size:0.76rem; flex-wrap:wrap; }
+  .bucket-link { color:var(--gold); cursor:pointer; text-decoration:underline; }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-size:0.7rem; color:var(--slate); }
+  .legend-item { display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .legend-item.dimmed { opacity:0.35; }
+  .legend-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .map-note { font-size:0.68rem; color:var(--slate); font-style:italic; margin-top:8px; }
+  .map-controls { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .map-controls button { background:var(--parchment-deep); border:1px solid var(--line); border-radius:3px; width:26px; height:26px; cursor:pointer; font-size:0.9rem; color:var(--charcoal); }
+  .map-controls button:hover { background:var(--gold); color:#fff; }
+  #map_zoomReset { width:auto; padding:0 10px; font-size:0.72rem; }
+  .map-controls-hint { font-size:0.68rem; color:var(--slate); margin-left:6px; }
+
+  .feed-scroll { max-height:900px; overflow-y:auto; padding-right:4px; }
+  .feed-item { border-bottom:1px solid var(--line); padding:13px 0; }
+  .feed-item:first-child { padding-top:0; }
+  .feed-item.pinned { background:var(--parchment-deep); margin:0 -10px 10px -10px; padding:12px 10px; border-radius:4px; border-bottom:none; }
+
+/* Sparse feed rows */
+.feed-row { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--line); cursor:pointer; transition:background 0.1s; }
+.feed-row:hover { background:var(--parchment-deep); }
+.feed-row:first-child { }
+.feed-row-index { color:var(--slate); font-size:0.7rem; width:20px; flex-shrink:0; }
+.feed-row-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.feed-row-main { flex:1; min-width:0; }
+.feed-row-title { font-size:0.86rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.feed-row-sub { font-size:0.7rem; color:var(--slate); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.feed-row-amt { font-size:0.82rem; font-weight:600; text-align:right; flex-shrink:0; min-width:64px; }
+.feed-row-conf { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.feed-row-conf.conf-high { background:var(--forest); }
+.feed-row-conf.conf-medium { background:var(--gold); }
+.feed-row-conf.conf-low { background:var(--rust); }
+.feed-row-chevron { color:var(--slate); flex-shrink:0; font-size:0.9rem; }
+
+/* Detail page ("its own page") */
+.detail-page { max-width:820px; margin:0 auto; padding:24px 32px 80px 32px; }
+.detail-back { font-size:0.82rem; color:var(--gold); cursor:pointer; text-decoration:underline; display:inline-block; margin-bottom:18px; }
+.detail-badges { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.detail-title { font-size:1.7rem; font-weight:600; margin:0 0 6px 0; }
+.detail-sub { font-size:0.9rem; color:var(--slate); margin-bottom:24px; }
+.detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0; border:1px solid var(--line); border-radius:4px; margin-bottom:20px; background:var(--white); }
+.detail-metric { padding:14px 16px; border-left:1px solid var(--line); }
+.detail-metric:first-child { border-left:none; }
+.detail-metric .v { font-size:1.15rem; font-weight:600; }
+.detail-metric .l { font-size:0.68rem; color:var(--slate); margin-top:2px; }
+.detail-section { margin-bottom:20px; }
+.detail-section h4 { font-size:0.72rem; color:var(--slate); text-transform:uppercase; letter-spacing:0.04em; margin:0 0 8px 0; }
+.detail-section p { font-size:0.94rem; line-height:1.6; margin:0; }
+.detail-note-box { border-radius:4px; padding:12px 16px; font-size:0.88rem; margin-bottom:10px; }
+.detail-note-box.amount { background:#FBF0EC; border-left:4px solid var(--rust); color:#5A2A20; }
+.detail-note-box.jobs { background:#EEF3EE; border-left:4px solid var(--forest); color:#2A4A34; }
+.detail-sources li { margin-bottom:6px; font-size:0.88rem; }
+.detail-sources a { color:var(--gold); }
+  .back-link { font-size:0.76rem; color:var(--gold); cursor:pointer; text-decoration:underline; display:inline-block; margin-bottom:10px; }
+  .feed-head { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .feed-index { color:var(--slate); font-size:0.74rem; width:22px; }
+  .tag { font-size:0.6rem; font-weight:600; padding:2px 6px; border-radius:3px; color:#fff; }
+  .type-pill { font-size:0.6rem; color:var(--slate); border:1px solid var(--line); padding:1px 6px; border-radius:10px; }
+  .conf-pill { font-size:0.6rem; padding:2px 7px; border-radius:10px; font-weight:600; }
+  .conf-high { background:#DCE8DF; color:var(--forest); }
+  .conf-medium { background:#EFE3C0; color:var(--gold); }
+  .conf-low { background:#F3DED8; color:var(--rust); }
+  .volatile-pill { font-size:0.6rem; background:var(--rust); color:var(--white); padding:2px 6px; border-radius:3px; }
+  .feed-title { font-size:0.96rem; font-weight:600; margin:5px 0 2px 0; }
+  .feed-sub { font-size:0.74rem; color:var(--slate); margin-bottom:4px; }
+  .feed-metrics { display:flex; gap:12px; font-size:0.8rem; margin-bottom:4px; flex-wrap:wrap; }
+  .m-val { font-weight:600; }
+  .m-lab { color:var(--slate); font-size:0.65rem; }
+  .feed-desc { font-size:0.79rem; color:#3A342C; }
+  .feed-note { font-size:0.73rem; color:var(--rust); margin-top:5px; background:#FBF0EC; padding:5px 8px; border-radius:3px; }
+  .feed-jobsnote { font-size:0.73rem; color:var(--forest); margin-top:5px; background:#EEF3EE; padding:5px 8px; border-radius:3px; }
+  .feed-source { font-size:0.68rem; color:var(--slate); margin-top:5px; }
+  .feed-source a { color:var(--gold); }
+  .show-more { text-align:center; padding:14px 0 0 0; }
+  .show-more button { background:var(--ink); color:var(--white); border:none; padding:7px 16px; border-radius:3px; cursor:pointer; font-size:0.8rem; }
+
+  footer { max-width:1320px; margin:0 auto; padding:16px 32px 60px 32px; font-size:0.68rem; color:var(--slate); border-top:1px solid var(--line); }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-top">
+      <div>
+        <h1 class="masthead-title serif">Place-Based Investment Dashboard</h1>
+      </div>
+      <div class="masthead-nav">
+        <a href="#" onclick="location.hash=''; return false;">Investments</a>
+        <a href="#sources" onclick="location.hash='sources'; return false;">Sources</a>
+        <a href="#map" class="map-link">Open the Map →</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="ask-band">
+  <div class="ask-band-inner">
+    <span class="ask-label serif" style="font-size:1.1rem;">Ask the Ledger</span>
+    <form class="ask-form" onsubmit="return submitAsk(event)">
+      <input class="ask-input" id="askInput" type="text" placeholder="e.g. Where is investment concentrated vs. thin across Maryland?" />
+      <button class="ask-btn" type="submit">Ask →</button>
+    </form>
+  </div>
+</div>
+
+<div class="method-banner landing-section">
+  Public-investment data is drawn from federal, state, and local government sources (USASpending.gov, the Maryland General Assembly, Good Jobs First, county permit datasets, and more). Private-investment data is drawn from SEC filings, company press releases, and trade/local press. <a href="#sources" onclick="location.hash='sources'; return false;">See the full source list →</a>
+</div>
+
+<div class="stat-band landing-section">
+  <div class="stat-band-inner mono" id="statBand"></div>
+</div>
+
+<div class="toolbar-wrap landing-section">
+  <div class="toolbar">
+    <input type="text" id="entitySearch" placeholder="Search company or project…" style="font-family:inherit; font-size:0.8rem; padding:6px 10px; border:1px solid var(--line); border-radius:3px; min-width:200px;" />
+    <select id="filterInvType">
+      <option value="all">Private + Public</option>
+      <option value="private_investment">Private investment only</option>
+      <option value="public_investment">Public investment only</option>
+    </select>
+    <select id="filterAwardLevel"><option value="all">All awarding levels</option></select>
+    <select id="filterState"><option value="all">All US</option></select>
+    <select id="filterSector"><option value="all">All categories</option></select>
+    <select id="filterType"><option value="all">All instruments</option></select>
+    <select id="filterYear"><option value="all">All years</option></select>
+    <select id="filterConf">
+      <option value="all">All confidence levels</option>
+      <option value="high">High confidence only</option>
+      <option value="medhigh">Medium &amp; high</option>
+    </select>
+    <select id="filterMagnitude">
+      <option value="all">All amounts</option>
+      <option value="lt1">Under $1M</option>
+      <option value="1-2">$1M – $2M</option>
+      <option value="2-5">$2M – $5M</option>
+      <option value="5-10">$5M – $10M</option>
+      <option value="10-25">$10M – $25M</option>
+      <option value="25-50">$25M – $50M</option>
+      <option value="50-100">$50M – $100M</option>
+      <option value="100-500">$100M – $500M</option>
+      <option value="500plus">$500M+</option>
+      <option value="none">No disclosed amount</option>
+    </select>
+    <select id="sortBy">
+      <option value="amount_desc">Sort: Amount (high → low)</option>
+      <option value="amount_asc">Sort: Amount (low → high)</option>
+      <option value="jobs_desc">Sort: Jobs total (high → low)</option>
+      <option value="date_desc">Sort: Date (newest first)</option>
+      <option value="date_asc">Sort: Date (oldest first)</option>
+    </select>
+    <span class="result-count" id="resultCount"></span>
+  </div>
+</div>
+
+<main id="listView" class="landing-section">
+  <div class="card-grid" id="cardGrid"></div>
+  <div class="show-more" id="showMoreWrap" style="display:none;">
+    <button id="showMoreBtn">Show more</button>
+  </div>
+</main>
+
+<div id="mapPage" style="display:none;">
+  <div style="max-width:1320px; margin:0 auto; padding:10px 32px 0 32px;"><a href="#" onclick="location.hash=''; return false;" style="font-size:0.8rem;">&larr; Back to Investments</a></div>
+  <div class="stat-row mono" id="map_statRow" style="max-width:1320px; margin:0 auto; padding:10px 32px;"></div>
+<div class="method-banner">
+  <b>Read before the numbers:</b> real pipeline output — 1,221 records (325 private-sector investments + 896 public-sector awards), 24 jurisdictions, no dollar floor applied. Public-investment extraction is not yet complete (see Sources). Published without a human review gate (pilot-phase exception) — confidence tags below are load-bearing, not decorative.
+</div>
+
+<div class="toolbar">
+  <select id="map_filterInvType">
+    <option value="all">Private + Public</option>
+    <option value="private_investment">Private only</option>
+    <option value="public_investment">Public only</option>
+  </select>
+  <select id="map_filterAwardLevel"><option value="all">All awarding levels</option></select>
+  <select id="map_filterSector"><option value="all">All categories</option></select>
+  <select id="map_filterType"><option value="all">All instruments</option></select>
+  <select id="map_filterYear"><option value="all">All years</option></select>
+  <select id="map_filterConf">
+    <option value="all">All confidence levels</option>
+    <option value="high">High confidence only</option>
+    <option value="medhigh">Medium &amp; high</option>
+  </select>
+  <select id="map_filterMagnitude">
+    <option value="all">All amounts</option>
+    <option value="lt1">Under $1M</option>
+    <option value="1-2">$1M – $2M</option>
+    <option value="2-5">$2M – $5M</option>
+    <option value="5-10">$5M – $10M</option>
+    <option value="10-25">$10M – $25M</option>
+    <option value="25-50">$25M – $50M</option>
+    <option value="50-100">$50M – $100M</option>
+    <option value="100-500">$100M – $500M</option>
+    <option value="500plus">$500M+</option>
+    <option value="none">No disclosed amount</option>
+  </select>
+  <select id="map_sortBy">
+    <option value="amount_desc">Sort: Amount (high → low)</option>
+    <option value="amount_asc">Sort: Amount (low → high)</option>
+    <option value="jobs_desc">Sort: Jobs total (high → low)</option>
+    <option value="jobs_asc">Sort: Jobs total (low → high)</option>
+    <option value="date_desc">Sort: Date (newest first)</option>
+    <option value="date_asc">Sort: Date (oldest first)</option>
+  </select>
+</div>
+<main id="map_listView">
+  <div>
+    <div class="panel-title"><span>THE MAP</span><span class="hint">Click a state, then a county, to drill in — numbered circles show record counts at each level. <span id="map_mapCount"></span></span></div>
+    <div class="map-card">
+      <div id="map_mapTooltip" class="map-tooltip"></div>
+      <div class="map-controls">
+        <button id="map_zoomIn" title="Zoom in">+</button>
+        <button id="map_zoomOut" title="Zoom out">−</button>
+        <button id="map_zoomReset" title="Reset view">Reset</button>
+        <span class="map-controls-hint">scroll to zoom · drag to pan</span>
+      </div>
+      <svg id="map_svg" viewBox="0 0 700 520" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="legend" id="map_legend"></div>
+      <div class="legend-scale">
+        <span>Fewer records</span><div class="legend-scale-bar"></div><span>More records</span>
+      </div>
+      <div class="map-note"><span id="map_geoSourceNote">Loading live boundaries\u2026</span> Shading reflects how many matching records are in each state/county \u2014 hover for details, click to drill in. At the county level, only geocoded records show as individual dots; everything else is reachable via the "without a precise address" link above the feed.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel-title"><span>THE FEED</span><span id="map_feedCount"></span></div>
+    <div id="map_countyHeader" style="display:none;"></div>
+    <div class="feed-scroll">
+      <div id="map_feedList"></div>
+      <div class="show-more" id="map_showMoreWrap" style="display:none;">
+        <button id="map_showMoreBtn">Show more</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+</div>
+
+<div id="detailView" class="detail-page"></div>
+<div id="askView" class="ask-page"></div>
+<div id="sourcesView" class="detail-page" style="display:none; max-width:900px;">
+  <button class="back-link" onclick="location.hash=''">← Back to investments</button>
+  <h2 class="detail-title serif">Data sources &amp; methodology</h2>
+  <div class="detail-sub">1,221 records — 325 private-sector investments, 896 public-sector awards — as of the 2026-09-17 export.</div>
+
+  <div class="detail-section"><h4>Status of this export</h4>
+  <p>Private-investment extraction is complete for this pilot phase. Public-investment extraction is <b>not yet complete</b>: federal grants (430 records) are done; the enacted state capital budget (Senate Bill 283, ~305 of an estimated 600+ line items) and federal contracts (~135 of 483 candidates at the $100M+ floor) were paused mid-extraction. Every record currently published, complete or not, meets the full sourcing/verification bar — nothing partial or unverified was included.</p></div>
+
+  <div class="detail-section"><h4>Federal government</h4>
+  <p><b>SEC EDGAR</b> (sec.gov) — full-text search across 8-K, 10-K, 10-Q, S-1, and DEF 14A filings for company disclosures of Maryland facility investments, expansions, and acquisitions.<br>
+  <b>USASpending.gov</b> — the federal government's official public spending database: grants, cooperative agreements, and contracts awarded to Maryland-based recipients or performed in Maryland.</p></div>
+
+  <div class="detail-section"><h4>Maryland state government</h4>
+  <p><b>Maryland General Assembly</b> — Chapter 5, 2026 Laws of Maryland (Senate Bill 283, "Maryland Consolidated Capital Bond Loan of 2026"), the enacted state capital budget.<br>
+  <b>Maryland Department of Commerce</b> (business.maryland.gov) — state economic development announcements.<br>
+  <b>Office of the Governor of Maryland</b> (governor.maryland.gov) — gubernatorial announcements of major investments and state programs.<br>
+  <b>Good Jobs First — Subsidy Tracker</b> (goodjobsfirst.org) — Maryland state economic-development subsidy awards, cross-referenced to the private capital investment they supported.</p></div>
+
+  <div class="detail-section"><h4>Maryland county &amp; local government</h4>
+  <p><b>Baltimore Metropolitan Council</b> — regional building permit dataset (BPDS_2025) covering Annapolis, Anne Arundel County, Baltimore City, Baltimore County, Carroll County, Harford County, Howard County, and Queen Anne's County.<br>
+  <b>Montgomery County</b> — commercial building permits (open data).<br>
+  <b>Prince George's County</b> — residential, commercial, and site/road permits (open data).<br>
+  <b>Garrett County Government</b> · <b>Salisbury-Wicomico Economic Development (SWED)</b></p></div>
+
+  <div class="detail-section"><h4>Company sources</h4>
+  <p>Direct company press releases and investor announcements, including AstraZeneca, Northrop Grumman, Mountaire Farms, Ports America, Rohde &amp; Schwarz, Pandora Group, Logistics Property Co., Cenergy Holdings, Harbor Point/Beatty Development Group, Four Seasons, and MacroGenics, among others.</p></div>
+
+  <div class="detail-section"><h4>News &amp; trade press</h4>
+  <p><b>General/investigative:</b> The Baltimore Banner, Baltimore Sun, Washington Post, Maryland Matters.<br>
+  <b>Trade press:</b> BioBuzz, BioSpace, Construction Dive, Data Center Dynamics, Business Facilities Magazine, REBusinessOnline, WBOC, WMAR2 News, Fox Baltimore, Eye On Annapolis, MoCoShow, Nottingham MD, The BayNet.</p></div>
+
+  <div class="detail-section"><h4>Methodology notes</h4>
+  <p>Every record cites at least one of the sources above (verified — no record is published without a real, checkable citation). Dollar amounts carry a confidence rating (high/medium/low) reflecting how directly the source discloses the figure. Private-sector and public-sector records are tracked separately, since they represent different decisions — but the same underlying project can appear in both, cross-linked when a public subsidy or grant helped fund a specific private investment already in the dataset. Geographic precision varies by source: every record has at least a county-level coordinate (a real Census Bureau county centroid, used as a fallback), and a subset additionally have a precise street-address-level geocode.</p></div>
+</div>
+
+<footer>
+  Data: live export from a Claude Code-run collection pipeline against the sourcing methodology and confidence rubric documented in this project's CLAUDE.md and Sourcing Playbook, exported 2026-09-15. Published without human review per an explicit pilot-phase exception. Not a complete inventory of Maryland private investment. Currently Maryland-only; "All US" will expand as additional states are added.
+</footer>
+
+<script>
+let records = [];
+// Live data: the read-only md_dashboard.records view (published records only).
+// The publishable key is safe to ship in client code -- it can only read that
+// view; every pipeline table is closed to it at the database level.
+const SUPABASE_URL = 'https://odydzugihzwepcyabmza.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_e4EL7E9iApP4wVQ-O0y-bA_xM0liqBL';
+async function fetchRecords(){
+  const PAGE = 1000; // Supabase's per-request row cap
+  let all = [];
+  for(let from = 0; ; from += PAGE){
+    const res = await fetch(SUPABASE_URL + '/rest/v1/records?select=*&order=id', {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        'Accept-Profile': 'md_dashboard',
+        Range: from + '-' + (from + PAGE - 1)
+      }
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+    const page = await res.json();
+    all = all.concat(page);
+    if(page.length < PAGE) return all;
+  }
+}
+
+// ---------- state ----------
+let activeState='all', activeSector='all', activeType='all', activeYear='all', activeConf='all', activeMag='all', sortMode='amount_desc';
+let activeInvType='all', activeAwardLevel='all', entityQuery='';
+let showCount = 24;
+
+function jobsTotal(r){ return (r.jobsNew||0)+(r.jobsRetained||0)+(r.jobsConstruction||0); }
+function fmtMoney(n){
+  if(n==null) return null;
+  if(n>=1e9) return '$'+(n/1e9).toFixed(2)+'B';
+  if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return '$'+(n/1e3).toFixed(0)+'K';
+  return '$'+n.toFixed(0);
+}
+function fmtInt(n){ return n.toLocaleString('en-US'); }
+function yearOf(r){ const d=r.dateAnnounced||r.dateStatusAsof; return d? d.slice(0,4): null; }
+
+const CATEGORY_LABELS = {
+  life_sciences_biotech:'Life sciences / biotech', data_centers_digital_infra:'Data centers / digital infra',
+  real_estate_mixed_use:'Real estate / mixed use', logistics_warehouse:'Logistics / warehouse',
+  retail:'Retail', hospitality:'Hospitality', healthcare:'Healthcare', manufacturing:'Manufacturing',
+  agriculture_food:'Agriculture / food', energy_utilities:'Energy / utilities', financial_services:'Financial services',
+  aerospace_defense:'Aerospace / defense', technology_quantum:'Technology / quantum',
+  port_maritime_infrastructure:'Port / maritime infra', other:'Other',
+  education_facilities:'Education facilities', healthcare_public_health:'Healthcare / public health',
+  economic_development:'Economic development', public_safety:'Public safety', parks_recreation:'Parks & recreation',
+  housing_community_development:'Housing / community development', transportation_infrastructure:'Transportation infrastructure',
+  environment_conservation:'Environment / conservation', energy:'Energy', water_sewer_utilities:'Water & sewer utilities',
+  broadband_technology:'Broadband / technology'
+};
+const INSTRUMENT_LABELS = {
+  completed_transaction:'Completed transaction', future_projection:'Future projection', multiyear_program:'Multi-year program',
+  recurring_subsidy_award:'Recurring subsidy award', approved_contested:'Approved & contested',
+  competitive_grant:'Competitive grant', capital_bond:'Capital bond', loan:'Loan', contract:'Contract', tax_credit:'Tax credit'
+};
+
+// ---------- populate filter dropdowns ----------
+function uniqueSorted(arr){ return [...new Set(arr.filter(Boolean))].sort(); }
+function instrumentOf(r){ return r.type==='private_investment' ? r.recordType : r.fundingMechanism; }
+
+function initFilters(){
+  const states = uniqueSorted(records.map(r=>r.state));
+  const stateNames = {MD:'Maryland'};
+  const stSel = document.getElementById('filterState');
+  states.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=stateNames[s]||s; stSel.appendChild(o); });
+
+  const privCats = uniqueSorted(records.filter(r=>r.type==='private_investment').map(r=>r.category));
+  const pubCats = uniqueSorted(records.filter(r=>r.type==='public_investment').map(r=>r.category));
+  const secSel = document.getElementById('filterSector');
+  const privGroup = document.createElement('optgroup'); privGroup.label = 'Private — sector';
+  privCats.forEach(s=>{ const o=document.createElement('option'); o.value='sector:'+s; o.textContent=CATEGORY_LABELS[s]||s; privGroup.appendChild(o); });
+  const pubGroup = document.createElement('optgroup'); pubGroup.label = 'Public — purpose';
+  pubCats.forEach(s=>{ const o=document.createElement('option'); o.value='purpose:'+s; o.textContent=CATEGORY_LABELS[s]||s; pubGroup.appendChild(o); });
+  secSel.appendChild(privGroup); secSel.appendChild(pubGroup);
+
+  const privInst = uniqueSorted(records.filter(r=>r.type==='private_investment').map(r=>r.recordType));
+  const pubInst = uniqueSorted(records.filter(r=>r.type==='public_investment').map(r=>r.fundingMechanism));
+  const typeSel = document.getElementById('filterType');
+  const privInstGroup = document.createElement('optgroup'); privInstGroup.label = 'Private — record type';
+  privInst.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=INSTRUMENT_LABELS[t]||t; privInstGroup.appendChild(o); });
+  const pubInstGroup = document.createElement('optgroup'); pubInstGroup.label = 'Public — funding mechanism';
+  pubInst.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=INSTRUMENT_LABELS[t]||t; pubInstGroup.appendChild(o); });
+  typeSel.appendChild(privInstGroup); typeSel.appendChild(pubInstGroup);
+
+  const levels = uniqueSorted(records.map(r=>r.awardingLevel));
+  const levelSel = document.getElementById('filterAwardLevel');
+  levels.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l.charAt(0).toUpperCase()+l.slice(1); levelSel.appendChild(o); });
+
+  const years = uniqueSorted(records.map(yearOf)).sort().reverse();
+  const yrSel = document.getElementById('filterYear');
+  years.forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=y; yrSel.appendChild(o); });
+}
+
+document.getElementById('filterState').addEventListener('change', e=>{ activeState=e.target.value; showCount=24; render(); });
+document.getElementById('filterSector').addEventListener('change', e=>{ activeSector=e.target.value; showCount=24; render(); });
+document.getElementById('filterType').addEventListener('change', e=>{ activeType=e.target.value; showCount=24; render(); });
+document.getElementById('filterYear').addEventListener('change', e=>{ activeYear=e.target.value; showCount=24; render(); });
+document.getElementById('filterConf').addEventListener('change', e=>{ activeConf=e.target.value; showCount=24; render(); });
+document.getElementById('filterMagnitude').addEventListener('change', e=>{ activeMag=e.target.value; showCount=24; render(); });
+document.getElementById('filterInvType').addEventListener('change', e=>{ activeInvType=e.target.value; showCount=24; render(); });
+document.getElementById('filterAwardLevel').addEventListener('change', e=>{ activeAwardLevel=e.target.value; showCount=24; render(); });
+document.getElementById('sortBy').addEventListener('change', e=>{ sortMode=e.target.value; render(); });
+document.getElementById('showMoreBtn').addEventListener('click', ()=>{ showCount+=24; render(); });
+let entityDebounce;
+document.getElementById('entitySearch').addEventListener('input', e=>{
+  clearTimeout(entityDebounce);
+  entityDebounce = setTimeout(()=>{ entityQuery = e.target.value.trim().toLowerCase(); showCount=24; render(); }, 150);
+});
+
+function matchesFilters(r){
+  if(activeInvType!=='all' && r.type!==activeInvType) return false;
+  if(activeAwardLevel!=='all' && r.awardingLevel!==activeAwardLevel) return false;
+  if(activeState!=='all' && r.state!==activeState) return false;
+  if(activeSector!=='all'){
+    const [kind, val] = activeSector.split(':');
+    if(r.category!==val) return false;
+  }
+  if(activeType!=='all' && instrumentOf(r)!==activeType) return false;
+  if(activeYear!=='all' && yearOf(r)!==activeYear) return false;
+  if(activeConf==='high' && r.confidence!=='high') return false;
+  if(activeConf==='medhigh' && r.confidence==='low') return false;
+  if(entityQuery && !((r.company||'').toLowerCase().includes(entityQuery) || (r.name||'').toLowerCase().includes(entityQuery))) return false;
+  if(activeMag!=='all'){
+    const a=r.amount;
+    if(activeMag==='none'){ if(a!=null) return false; }
+    else {
+      if(a==null) return false;
+      const m=a/1e6;
+      const ranges = {'lt1':[0,1],'1-2':[1,2],'2-5':[2,5],'5-10':[5,10],'10-25':[10,25],'25-50':[25,50],'50-100':[50,100],'100-500':[100,500],'500plus':[500,Infinity]};
+      const [lo,hi]=ranges[activeMag];
+      if(!(m>=lo && m<hi)) return false;
+    }
+  }
+  return true;
+}
+
+function getFiltered(){
+  let list = records.filter(matchesFilters);
+  list.sort((a,b)=>{
+    if(sortMode==='amount_desc') return (b.amount??-1)-(a.amount??-1);
+    if(sortMode==='amount_asc') return (a.amount??1e15)-(b.amount??1e15);
+    if(sortMode==='jobs_desc') return jobsTotal(b)-jobsTotal(a);
+    if(sortMode==='date_desc') return (b.dateAnnounced||'').localeCompare(a.dateAnnounced||'');
+    if(sortMode==='date_asc') return (a.dateAnnounced||'').localeCompare(b.dateAnnounced||'');
+    return 0;
+  });
+  return list;
+}
+
+function renderStats(list){
+  const totalAmt = list.reduce((s,r)=>s+(r.amount||0),0);
+  const totalJobs = list.reduce((s,r)=>s+jobsTotal(r),0);
+  const nPriv = list.filter(r=>r.type==='private_investment').length;
+  const nPub = list.filter(r=>r.type==='public_investment').length;
+  document.getElementById('statBand').innerHTML = `
+    <div class="stat-card"><div class="num">${fmtMoney(totalAmt)||'$0'}</div><div class="label">Total $ (filtered)</div><div class="sub">sum of disclosed amounts only</div></div>
+    <div class="stat-card"><div class="num">${fmtInt(list.length)}</div><div class="label">Records</div><div class="sub">${fmtInt(nPriv)} private · ${fmtInt(nPub)} public</div></div>
+    <div class="stat-card"><div class="num">${fmtInt(totalJobs)}</div><div class="label">Jobs impact</div><div class="sub">new + retained + construction combined</div></div>
+  `;
+}
+
+function cardHTML(r){
+  const amt = r.amount!=null ? fmtMoney(r.amount) : 'Amount not disclosed';
+  const amtClass = r.amount!=null ? '' : 'none';
+  const loc = [r.place, r.county].filter(Boolean).join(', ') || r.state;
+  const jt = jobsTotal(r);
+  const categoryLabel = (CATEGORY_LABELS[r.category] || (r.category||'other')).replace(/_/g,' ');
+  const typeTag = r.type==='private_investment' ? 'Private' : 'Public';
+  return `<div class="inv-card" onclick="navigate('detail','${r.id}')">
+    <div class="inv-card-top">
+      <div><div class="inv-card-company">${esc(r.company)}</div><div class="inv-card-place">${esc(loc)}</div></div>
+      <div class="inv-card-amt ${amtClass}">${amt}</div>
+    </div>
+    <div class="inv-card-badges">
+      <span class="tag sector" style="${r.type==='public_investment'?'background:#DCE4F0;color:#2A4A7A;':''}">${typeTag}</span>
+      <span class="tag sector">${esc(categoryLabel)}</span>
+      <span class="conf-pill conf-${r.confidence}">${r.confidence} confidence</span>
+      ${r.isVolatile?'<span class="volatile-pill">Contested / volatile</span>':''}
+    </div>
+    <div class="inv-card-desc">${esc(r.oneSentence)}</div>
+    ${jt>0?`<div class="inv-card-jobs">${r.jobsNew?`<span><b>${fmtInt(r.jobsNew)}</b> new</span>`:''}${r.jobsRetained?`<span><b>${fmtInt(r.jobsRetained)}</b> retained</span>`:''}${r.jobsConstruction?`<span><b>${fmtInt(r.jobsConstruction)}</b> construction</span>`:''}</div>`:''}
+  </div>`;
+}
+
+function esc(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function render(){
+  const list = getFiltered();
+  renderStats(list);
+  document.getElementById('resultCount').textContent = `${list.length} matching record${list.length===1?'':'s'}`;
+  const grid = document.getElementById('cardGrid');
+  if(list.length===0){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">No records match these filters.</div>`;
+  } else {
+    grid.innerHTML = list.slice(0, showCount).map(cardHTML).join('');
+  }
+  document.getElementById('showMoreWrap').style.display = list.length>showCount ? 'block' : 'none';
+}
+
+// ---------- detail view ----------
+function renderDetail(id){
+  const r = records.find(x=>x.id===id);
+  if(!r){ navigate('list'); return; }
+  const jobsBits = [];
+  if(r.jobsNew) jobsBits.push(`${fmtInt(r.jobsNew)} new`);
+  if(r.jobsRetained) jobsBits.push(`${fmtInt(r.jobsRetained)} retained`);
+  if(r.jobsConstruction) jobsBits.push(`${fmtInt(r.jobsConstruction)} construction`);
+  const sources = (r.sourceUrls||'').split(/[;|]/).map(u=>u.trim()).filter(Boolean);
+  const sourceNames = (r.sourceNames||'').split(';').map(u=>u.trim()).filter(Boolean);
+  const loc = [r.place, r.county, r.state].filter(Boolean).join(', ');
+  const categoryLabel = (CATEGORY_LABELS[r.category] || (r.category||'other')).replace(/_/g,' ');
+  const isPublic = r.type==='public_investment';
+
+  const metricsHTML = isPublic ? `
+    <div class="detail-metric"><div class="v">${r.amount!=null?fmtMoney(r.amount):'—'}</div><div class="l">Amount</div></div>
+    <div class="detail-metric"><div class="v">${esc((r.awardingLevel||'—'))}</div><div class="l">Awarding level</div></div>
+    <div class="detail-metric"><div class="v">${esc((r.fundingMechanism||'—').replace(/_/g,' '))}</div><div class="l">Funding mechanism</div></div>
+    <div class="detail-metric"><div class="v">${esc(r.status || r.completionStage || '—')}</div><div class="l">Status</div></div>
+  ` : `
+    <div class="detail-metric"><div class="v">${r.amount!=null?fmtMoney(r.amount):'—'}</div><div class="l">Amount</div></div>
+    <div class="detail-metric"><div class="v">${jobsBits.length?jobsBits.join(' / '):'—'}</div><div class="l">Jobs</div></div>
+    <div class="detail-metric"><div class="v">${esc((r.recordType||'—').replace(/_/g,' '))}</div><div class="l">Record type</div></div>
+    <div class="detail-metric"><div class="v">${esc(r.status || r.completionStage || '—')}</div><div class="l">Status</div></div>
+  `;
+
+  let relatedHTML = '';
+  if(isPublic && r.relatedPrivateId){
+    const pr = records.find(x=>x.id===r.relatedPrivateId);
+    if(pr) relatedHTML = `<div class="detail-section"><h4>Related private investment</h4><p><a href="#" onclick="navigate('detail','${pr.id}'); return false;">${esc(pr.company)} — ${esc(pr.name||'')}</a></p></div>`;
+  } else if(!isPublic){
+    const related = records.filter(x=>x.type==='public_investment' && x.relatedPrivateId===r.id);
+    if(related.length) relatedHTML = `<div class="detail-section"><h4>Related public funding</h4><ul class="detail-sources">${related.map(x=>`<li><a href="#" onclick="navigate('detail','${x.id}'); return false;">${esc(x.programName||x.awardingAgency||'Public award')} — ${x.amount!=null?fmtMoney(x.amount):'amount not disclosed'}</a></li>`).join('')}</ul></div>`;
+  }
+
+  document.getElementById('detailView').innerHTML = `
+    <button class="back-link" onclick="backToMain()">${lastMainHash==='#map' ? '\u2190 Back to the map' : '\u2190 Back to investments'}</button>
+    <div class="detail-badges">
+      <span class="tag sector" style="${isPublic?'background:#DCE4F0;color:#2A4A7A;':''}">${isPublic?'Public':'Private'}</span>
+      <span class="tag sector">${esc(categoryLabel)}</span>
+      <span class="conf-pill conf-${r.confidence}">${r.confidence} confidence</span>
+      ${r.isVolatile?'<span class="volatile-pill">Contested / volatile</span>':''}
+    </div>
+    <h2 class="detail-title serif">${esc(r.name || r.company)}</h2>
+    <div class="detail-sub">${esc(r.company)} · ${esc(loc)}${r.dateAnnounced?' · '+(isPublic?'Awarded ':'Announced ')+esc(r.dateAnnounced):''}${r.programName?' · '+esc(r.programName):''}</div>
+    <div class="detail-grid">${metricsHTML}</div>
+    ${r.statusNote?`<div class="detail-section"><h4>Status detail</h4><p>${esc(r.statusNote)}</p></div>`:''}
+    ${r.amountNote?`<div class="detail-note-box amount"><b>On the dollar figure:</b> ${esc(r.amountNote)}</div>`:''}
+    ${r.jobsNote?`<div class="detail-note-box jobs"><b>On the jobs figure:</b> ${esc(r.jobsNote)}</div>`:''}
+    ${relatedHTML}
+    <div class="detail-section"><h4>Sources</h4><ul class="detail-sources">
+      ${sources.length? sources.map((u,i)=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(sourceNames[i]||u)}</a></li>`).join(''): `<li>${esc(r.sourceNames||'No source recorded')}</li>`}
+    </ul></div>
+  `;
+}
+
+// ---------- ask view ----------
+async function runAsk(q){
+  document.getElementById('askView').innerHTML = `
+    <button class="back-link" onclick="backToMain()">${lastMainHash==='#map' ? '\u2190 Back to the map' : '\u2190 Back to investments'}</button>
+    <div class="q-box serif">"${esc(q)}"</div>
+    <div class="ask-answer-box" id="askAnswerBox">Thinking…</div>
+    <div class="ask-note">Answered by an AI model grounded only in this dataset's ${records.length} records (private + public) and their confidence/sourcing metadata.</div>
+    <form class="ask-page-form" onsubmit="return submitAsk(event)">
+      <input class="ask-input" id="askInput2" style="border:1px solid var(--line); color:var(--charcoal); background:var(--white);" type="text" placeholder="Ask another question…" />
+      <button class="ask-btn" style="background:var(--ink); color:var(--white);" type="submit">Ask →</button>
+    </form>
+  `;
+  try {
+    // Server-side proxy: holds the API key and reads the live data itself.
+    const response = await fetch(SUPABASE_URL + '/functions/v1/ask-the-ledger', {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ question: q })
+    });
+    const data = await response.json();
+    document.getElementById('askAnswerBox').textContent = data.answer || data.error || 'No answer returned.';
+  } catch(err){
+    document.getElementById('askAnswerBox').textContent = 'Could not reach the model (' + err.message + ').';
+  }
+}
+
+function submitAsk(e){
+  e.preventDefault();
+  const input = e.target.querySelector('input');
+  const q = input.value.trim();
+  if(!q) return false;
+  location.hash = '#ask/' + encodeURIComponent(q);
+  return false;
+}
+function askExample(q){
+  document.getElementById('askInput').value = q;
+  location.hash = '#ask/' + encodeURIComponent(q);
+}
+
+// ---------- routing ----------
+let lastMainHash = ''; // remembers whether "back" should return to the list or the map
+function navigate(view, id){
+  if(view==='list') location.hash = '';
+  else if(view==='map') location.hash = '#map';
+  else if(view==='detail') location.hash = '#record/' + id;
+}
+function backToMain(){ location.hash = lastMainHash; }
+
+
+function route(){
+  const h = location.hash;
+  document.querySelectorAll('.landing-section').forEach(el=>el.style.display = 'none');
+  document.getElementById('mapPage').style.display = 'none';
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('askView').style.display = 'none';
+  document.getElementById('sourcesView').style.display = 'none';
+  window.scrollTo(0,0);
+  if(h.startsWith('#record/')){
+    renderDetail(decodeURIComponent(h.slice(8)));
+    document.getElementById('detailView').style.display = 'block';
+  } else if(h.startsWith('#ask/')){
+    const q = decodeURIComponent(h.slice(5));
+    runAsk(q);
+    document.getElementById('askView').style.display = 'block';
+  } else if(h === '#map'){
+    lastMainHash = '#map';
+    document.getElementById('mapPage').style.display = 'block';
+    if(window.mapRenderAll) window.mapRenderAll();
+  } else if(h === '#sources'){
+    document.getElementById('sourcesView').style.display = 'block';
+  } else {
+    lastMainHash = '';
+    document.querySelectorAll('.landing-section').forEach(el=>el.style.display = '');
+  }
+}
+window.addEventListener('hashchange', ()=>{ if(recordsLoaded) route(); });
+
+// ---------- data load ----------
+let recordsLoaded = false;
+async function loadRecords(){
+  document.getElementById('cardGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Loading investment data…</div>';
+  try {
+    records = await fetchRecords();
+  } catch(err){
+    console.error('Failed to load records:', err);
+    document.getElementById('cardGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Could not load investment data. Please try again later.</div>';
+    return;
+  }
+  recordsLoaded = true;
+  initFilters();
+  if(window.mapInitData) window.mapInitData();
+  render();
+  route();
+}
+
+// ===== Map page logic =====
+(function(){
+
+const WESTERN_PATH = "M 35.6,30.9 L 119.4,30.9 L 204.5,30.9 L 289.7,30.9 L 374.8,30.9 L 488.4,30.9 L 481.3,61.9 L 467.1,98.3 L 481.3,116.5 L 467.1,162.1 L 452.9,207.6 L 467.1,271.4 L 438.7,280.5 L 389.0,280.5 L 367.7,253.2 L 367.7,198.5 L 374.8,198.5 L 383.4,198.5 L 383.4,163.0 L 372.0,162.1 L 353.5,143.9 L 332.3,134.8 L 311.0,103.8 L 289.7,103.8 L 268.4,103.8 L 247.1,80.1 L 204.5,65.5 L 161.9,65.5 L 119.4,52.8 L 35.6,30.9 Z";
+const EASTERN_PATH = "M 531.0,30.9 L 560.8,30.9 L 566.5,107.4 L 573.5,189.4 L 601.9,235.0 L 637.4,262.3 L 658.7,280.5 L 651.6,316.9 L 623.2,344.2 L 552.3,353.4 L 531.0,335.1 L 523.9,289.6 L 509.7,262.3 L 516.8,216.7 L 502.6,171.2 L 516.8,125.7 L 531.0,71.0 L 531.0,30.9 Z";
+const COUNTY_XY = {"Allegany": [140.6, 49.1], "Anne Arundel": [452.9, 158.4], "Baltimore City": [444.4, 109.3], "Baltimore County": [445.8, 80.1], "Baltimore": [445.8, 80.1], "Calvert": [445.8, 244.1], "Caroline": [555.1, 180.3], "Carroll": [389.0, 60.1], "Cecil": [538.1, 52.8], "Charles": [396.1, 247.7], "Dorchester": [523.9, 262.3], "Frederick": [339.4, 69.2], "Garrett": [62.6, 69.2], "Harford": [488.4, 61.9], "Howard": [403.2, 116.5], "Kent": [523.9, 116.5], "Montgomery": [360.6, 134.8], "Prince George's": [417.4, 193.1], "Queen Anne's": [516.8, 153.0], "St. Mary's": [452.9, 289.6], "Somerset": [580.6, 326.0], "Talbot": [516.8, 207.6], "Washington": [268.4, 49.1], "Wicomico": [594.8, 280.5], "Worcester": [630.3, 307.8], "Frederick & Montgomery": [349.3, 102.0], "Montgomery & Frederick": [349.3, 102.0], "Talbot & Caroline": [535.2, 193.1], "Maryland (county unspecified)": [389.0, 162.1]};
+
+const COUNTY_ZOOM_BOXES = {"Allegany": {"x": 48.4, "y": -19.4, "w": 184.3, "h": 136.9}, "Anne Arundel": {"x": 396.1, "y": 116.2, "w": 113.6, "h": 84.4}, "Baltimore City": {"x": 393.2, "y": 71.3, "w": 102.3, "h": 76}, "Baltimore County": {"x": 394.6, "y": 42.1, "w": 102.3, "h": 76}, "Calvert": {"x": 393.1, "y": 205.0, "w": 105.4, "h": 78.3}, "Caroline": {"x": 501.3, "y": 140.3, "w": 107.6, "h": 80.0}, "Carroll": {"x": 331.3, "y": 17.2, "w": 115.4, "h": 85.7}, "Cecil": {"x": 480.3, "y": 9.9, "w": 115.6, "h": 85.9}, "Charles": {"x": 339.1, "y": 205.3, "w": 114.0, "h": 84.7}, "Dorchester": {"x": 460.8, "y": 215.4, "w": 126.2, "h": 93.8}, "Frederick": {"x": 281.7, "y": 26.3, "w": 115.4, "h": 85.7}, "Garrett": {"x": -29.6, "y": 0.7, "w": 184.3, "h": 136.9}, "Harford": {"x": 435.4, "y": 22.5, "w": 106.0, "h": 78.8}, "Howard": {"x": 352.0, "y": 78.5, "w": 102.3, "h": 76}, "Kent": {"x": 472.7, "y": 78.5, "w": 102.3, "h": 76}, "Montgomery": {"x": 307.5, "y": 95.4, "w": 106.1, "h": 78.8}, "Prince George's": {"x": 360.6, "y": 150.9, "w": 113.6, "h": 84.4}, "Queen Anne's": {"x": 465.6, "y": 115.0, "w": 102.3, "h": 76}, "St. Mary's": {"x": 400.2, "y": 250.5, "w": 105.4, "h": 78.3}, "Somerset": {"x": 526.1, "y": 285.5, "w": 109.1, "h": 81.0}, "Talbot": {"x": 463.0, "y": 167.6, "w": 107.6, "h": 80.0}, "Washington": {"x": 184.0, "y": -13.6, "w": 168.9, "h": 125.4}, "Wicomico": {"x": 543.6, "y": 242.4, "w": 102.5, "h": 76.1}, "Worcester": {"x": 579.1, "y": 269.7, "w": 102.5, "h": 76.1}};
+const COUNTY_CELLS_JSON = {"Allegany": "M 60.4,-100.9 L 204.5,-99.7 L 204.5,210.3 L 188.7,250.9 L 160.4,287.3 Z", "Anne Arundel": "M 461.0,202.2 L 414.0,154.1 L 428.1,137.4 L 482.5,128.0 L 486.9,180.3 L 469.5,202.9 Z", "Baltimore City": "M 482.8,127.5 L 485.1,102.9 L 477.9,96.3 L 420.4,93.5 L 428.1,137.4 L 482.5,128.0 Z", "Baltimore County": "M 477.9,96.3 L 420.4,93.5 L 412.4,84.2 L 439.7,6.8 Z", "Calvert": "M 419.5,225.4 L 461.0,202.2 L 469.5,202.9 L 488.1,239.1 L 482.9,261.6 L 422.8,271.0 Z", "Caroline": "M 554.0,141.3 L 626.4,105.9 L 800.2,82.7 L 799.9,121.8 L 699.5,181.0 L 569.3,232.6 L 561.4,229.6 L 526.2,180.3 Z", "Carroll": "M 441.6,-99.9 L 439.7,6.8 L 412.4,84.2 L 369.8,94.9 L 339.9,-67.9 L 342.9,-100.6 Z", "Cecil": "M 484.4,-100.2 L 800.1,-99.1 L 800.0,82.8 L 626.4,105.9 L 517.7,81.7 Z", "Charles": "M 419.5,225.4 L 352.7,199.3 L 188.7,250.9 L 160.4,287.3 L -33.9,650.3 L 143.4,649.7 L 422.8,271.0 Z", "Dorchester": "M 488.1,239.1 L 561.4,229.6 L 569.3,232.6 L 553.9,292.7 L 509.9,331.9 L 482.9,261.6 Z", "Frederick": "M 369.8,94.9 L 339.9,-67.9 L 285.9,122.7 L 369.1,95.8 Z", "Garrett": "M -100.3,649.4 L -100.0,-100.8 L 60.8,-99.2 L 160.4,287.3 L -33.9,650.3 Z", "Harford": "M 485.1,102.9 L 517.7,81.7 L 484.4,-100.2 L 441.6,-99.9 L 439.7,6.8 L 477.9,96.3 Z", "Howard": "M 428.1,137.4 L 414.0,154.1 L 395.6,157.5 L 369.1,95.8 L 369.8,94.9 L 412.4,84.2 L 420.4,93.5 Z", "Kent": "M 554.0,141.3 L 626.4,105.9 L 517.7,81.7 L 485.1,102.9 L 482.8,127.5 Z", "Montgomery": "M 395.6,157.5 L 369.1,95.8 L 285.9,122.7 L 204.5,210.3 L 188.7,250.9 L 352.7,199.3 Z", "Prince George's": "M 419.5,225.4 L 352.7,199.3 L 395.6,157.5 L 414.0,154.1 L 461.0,202.2 Z", "Queen Anne's": "M 554.0,141.3 L 482.8,127.5 L 482.5,128.0 L 486.9,180.3 L 526.2,180.3 Z", "St. Mary's": "M 143.4,649.7 L 422.8,271.0 L 482.9,261.6 L 509.9,331.9 L 418.9,651.1 Z", "Somerset": "M 553.9,292.7 L 602.1,307.7 L 727.5,650.1 L 419.4,649.2 L 509.9,331.9 Z", "Talbot": "M 488.1,239.1 L 561.4,229.6 L 526.2,180.3 L 486.9,180.3 L 469.5,202.9 Z", "Washington": "M 204.5,-101.7 L 342.8,-99.8 L 339.9,-67.9 L 285.9,122.7 L 204.5,210.3 Z", "Wicomico": "M 569.3,232.6 L 553.9,292.7 L 602.1,307.7 L 699.5,181.0 Z", "Worcester": "M 799.7,650.3 L 727.2,649.5 L 602.1,307.7 L 699.5,181.0 L 800.1,121.7 Z"};
+const SECTOR_COLORS = {
+  life_sciences_biotech:'#6B4FA0', agriculture_food:'#7A8B4F', manufacturing:'#8B6F47', other:'#8A8378',
+  aerospace_defense:'#4F7A9B', real_estate_mixed_use:'#B8862B', hospitality:'#C2554A',
+  data_centers_digital_infra:'#2E5E8C', logistics_warehouse:'#4F8B6B', port_maritime_infrastructure:'#A6482E',
+  technology_quantum:'#7B5EA6', retail:'#C77B3D', healthcare:'#4F9B8B', energy_utilities:'#B0A339', financial_services:'#3D6B5E'
+};
+
+function fmt(n){ if(n===null||n===undefined) return '\u2014'; if(n>=1e9) return '$'+(n/1e9).toFixed(2)+'B'; if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(0)+'K'; return '$'+n.toLocaleString(); }
+function labelize(s){ if(!s) return 'Unspecified'; return s.split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
+
+let activeSector='all', activeType='all', activeConf='all', activeYear='all', activeMagnitude='all', sortMode='amount_desc', dimmedSector=null, showCount=15;
+let activeInvType='all', activeAwardLevel='all';
+const PUBLIC_DOT_COLOR = '#3D5A80';
+function instrumentOf(r){ return r.type==='private_investment' ? r.recordType : r.fundingMechanism; }
+function dotColor(r){ return r.type==='public_investment' ? PUBLIC_DOT_COLOR : (SECTOR_COLORS[r.category] || '#8A8378'); }
+const MAGNITUDE_RANGES = {
+  'lt1': [0, 1e6], '1-2': [1e6, 2e6], '2-5': [2e6, 5e6], '5-10': [5e6, 10e6],
+  '10-25': [10e6, 25e6], '25-50': [25e6, 50e6], '50-100': [50e6, 100e6],
+  '100-500': [100e6, 500e6], '500plus': [500e6, Infinity]
+};
+
+function passesFilters(r){
+  if(activeInvType!=='all' && r.type!==activeInvType) return false;
+  if(activeAwardLevel!=='all' && r.awardingLevel!==activeAwardLevel) return false;
+  // Level-scoping: what's "in scope" depends on where we are in the drill-down.
+  if(viewLevel === 'nation') {
+    // no county/state scoping at the nation level -- every record is "visible"
+    // for the purpose of populating state bubbles, handled directly in renderMap.
+  } else if(viewLevel === 'state') {
+    if(r.state !== selectedState) return false;
+    if(viewingBucket === 'state-unspecified'){
+      if(r.geoLevel !== 'state') return false;
+    } else if(!viewingBucket) {
+      // Normal state-level browsing: state-only-granularity records are reachable
+      // only via the bucket above, not mixed into the per-county view.
+      if(r.geoLevel === 'state') return false;
+    }
+  } else if(viewLevel === 'county') {
+    if(r.state !== selectedState) return false;
+    if(!(r.county||'').includes(selectedCounty)) return false;
+    if(viewingBucket === 'county-unspecified'){
+      if(r.geoLevel !== 'county') return false;
+    } else if(!viewingBucket) {
+      // Normal county-level browsing: only precise (geocoded) records show as
+      // individual dots/rows -- county-only-granularity records live in the bucket.
+      if(r.geoLevel !== 'precise') return false;
+    }
+  }
+  if(activeSector!=='all' && r.category!==activeSector) return false;
+  if(activeType!=='all' && instrumentOf(r)!==activeType) return false;
+  if(activeConf==='high' && r.confidence!=='high') return false;
+  if(activeConf==='medhigh' && r.confidence==='low') return false;
+  if(activeYear!=='all'){
+    const y = r.dateAnnounced ? r.dateAnnounced.slice(0,4) : 'unknown';
+    if(y !== activeYear) return false;
+  }
+  if(activeMagnitude!=='all'){
+    if(activeMagnitude==='none'){ if(r.amount) return false; }
+    else {
+      if(!r.amount) return false;
+      const [lo,hi] = MAGNITUDE_RANGES[activeMagnitude];
+      if(!(r.amount >= lo && r.amount < hi)) return false;
+    }
+  }
+  return true;
+}
+function jobsTotal(r){ return (r.jobsNew||0) + (r.jobsRetained||0) + (r.jobsConstruction||0); }
+function sortRecords(list){
+  const byDate = r => r.dateAnnounced || '0000-00-00';
+  switch(sortMode){
+    case 'amount_asc': return list.sort((a,b)=>(a.amount||0)-(b.amount||0));
+    case 'jobs_desc': return list.sort((a,b)=>jobsTotal(b)-jobsTotal(a));
+    case 'jobs_asc': return list.sort((a,b)=>jobsTotal(a)-jobsTotal(b));
+    case 'date_desc': return list.sort((a,b)=>byDate(b).localeCompare(byDate(a)));
+    case 'date_asc': return list.sort((a,b)=>byDate(a).localeCompare(byDate(b)));
+    case 'amount_desc': default: return list.sort((a,b)=>(b.amount||0)-(a.amount||0));
+  }
+}
+
+function renderStats(){
+  const withAmt = records.filter(r=>r.amount);
+  const total = withAmt.reduce((s,r)=>s+r.amount,0);
+  const totalMedHigh = withAmt.filter(r=>r.confidence!=='low').reduce((s,r)=>s+r.amount,0);
+  const jobs = records.reduce((s,r)=>s+(r.jobsNew||0)+(r.jobsRetained||0),0);
+  const stats = [
+    ['RECORDS', records.length], ['JURISDICTIONS', new Set(records.map(r=>r.county).filter(c=>c && c!=='Maryland (county unspecified)')).size],
+    ['WITH $ FIGURE', withAmt.length+'/'+records.length], ['SUM (ALL DISCLOSED)', fmt(total)],
+    ['SUM (MED+HIGH)', fmt(totalMedHigh)], ['JOBS (NEW+RET.)', jobs.toLocaleString()],
+    ['VOLATILE', records.filter(r=>r.isVolatile).length]
+  ];
+  document.getElementById('map_statRow').innerHTML = stats.map(([l,v])=>`<div class="stat"><div class="num">${v}</div><div class="label">${l}</div></div>`).join('');
+}
+
+const COUNTY_CELLS = COUNTY_CELLS_JSON;
+
+
+// ---------------- REAL GEOGRAPHY (attempted), schematic fallback ----------------
+const FIPS_TO_COUNTY = {"24001": "Allegany", "24003": "Anne Arundel", "24005": "Baltimore County", "24009": "Calvert", "24011": "Caroline", "24013": "Carroll", "24015": "Cecil", "24017": "Charles", "24019": "Dorchester", "24021": "Frederick", "24023": "Garrett", "24025": "Harford", "24027": "Howard", "24029": "Kent", "24031": "Montgomery", "24033": "Prince George's", "24035": "Queen Anne's", "24037": "St. Mary's", "24039": "Somerset", "24041": "Talbot", "24043": "Washington", "24045": "Wicomico", "24047": "Worcester", "24510": "Baltimore City"};
+
+const STATE_FIPS_TO_ABBR = {"01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE","11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA","20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN","28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM","36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI","45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA","54":"WV","55":"WI","56":"WY","72":"PR"};
+const STATE_ABBR_TO_NAME = {"AL":"Alabama","AK":"Alaska","AZ":"Arizona","AR":"Arkansas","CA":"California","CO":"Colorado","CT":"Connecticut","DE":"Delaware","DC":"District of Columbia","FL":"Florida","GA":"Georgia","HI":"Hawaii","ID":"Idaho","IL":"Illinois","IN":"Indiana","IA":"Iowa","KS":"Kansas","KY":"Kentucky","LA":"Louisiana","ME":"Maine","MD":"Maryland","MA":"Massachusetts","MI":"Michigan","MN":"Minnesota","MS":"Mississippi","MO":"Missouri","MT":"Montana","NE":"Nebraska","NV":"Nevada","NH":"New Hampshire","NJ":"New Jersey","NM":"New Mexico","NY":"New York","NC":"North Carolina","ND":"North Dakota","OH":"Ohio","OK":"Oklahoma","OR":"Oregon","PA":"Pennsylvania","RI":"Rhode Island","SC":"South Carolina","SD":"South Dakota","TN":"Tennessee","TX":"Texas","UT":"Utah","VT":"Vermont","VA":"Virginia","WA":"Washington","WV":"West Virginia","WI":"Wisconsin","WY":"Wyoming","PR":"Puerto Rico"};
+const ABBR_TO_STATE_FIPS = Object.fromEntries(Object.entries(STATE_FIPS_TO_ABBR).map(([k,v])=>[v,k]));
+
+let viewLevel = 'nation'; // 'nation' | 'state' | 'county'
+let selectedState = null; // e.g. 'MD'
+let viewingBucket = null; // null | 'state-unspecified' | 'county-unspecified'
+
+let REAL_STATE_PATHS = {};   // abbr -> d
+let REAL_STATE_XY = {};      // abbr -> [x,y] centroid
+let REAL_STATE_BOUNDS = {};  // abbr -> {x,y,w,h} zoom box
+
+let usingRealGeo = false;
+let REAL_COUNTY_PATHS = {};   // name -> d
+let REAL_COUNTY_XY = {};      // name -> [x,y] centroid in the 700x520 space
+let REAL_COUNTY_BOUNDS = {};  // name -> {x,y,w,h} zoom box in the 700x520 space
+
+async function loadRealGeography() {
+  try {
+    // Same-origin, bundled file (us-atlas@3.0.1, pinned). No third-party runtime
+    // dependency, so this should succeed every time the page itself loads.
+    const usRes = await fetch("data/geo/us-counties-10m.json");
+    if (!usRes.ok) throw new Error('bundled geometry missing: ' + usRes.status);
+    const us = await usRes.json();
+
+    const W = 700, H = 520;
+    const nationFeature = topojson.feature(us, us.objects.nation);
+    // ONE shared projection for the whole app: states, counties, and precise
+    // record coordinates are all placed through this same transform, so "zooming"
+    // between levels is purely a viewBox change, never a re-projection.
+    const projection = d3.geoAlbersUsa().fitSize([W, H], nationFeature);
+    const pathGen = d3.geoPath().projection(projection);
+
+    // --- States (from the base us-atlas topology) ---
+    const stateFeatures = topojson.feature(us, us.objects.states).features;
+    stateFeatures.forEach(feat => {
+      const fips = String(feat.id).padStart(2, '0');
+      const abbr = STATE_FIPS_TO_ABBR[fips];
+      if (!abbr) return;
+      const d = pathGen(feat);
+      const centroid = pathGen.centroid(feat);
+      const b = pathGen.bounds(feat);
+      if (!d || isNaN(centroid[0])) return;
+      REAL_STATE_PATHS[abbr] = d;
+      REAL_STATE_XY[abbr] = centroid;
+      const bw = (b[1][0]-b[0][0]), bh = (b[1][1]-b[0][1]);
+      const pad = 0.5;
+      let w = bw*(1+pad), h = bh*(1+pad);
+      const aspect = W/H;
+      if (w/h > aspect) h = w/aspect; else w = h*aspect;
+      w = Math.max(w, 70); h = Math.max(h, 52);
+      REAL_STATE_BOUNDS[abbr] = { x: centroid[0]-w/2, y: centroid[1]-h/2, w, h };
+    });
+    if (Object.keys(REAL_STATE_PATHS).length < 40) throw new Error("incomplete state set: " + Object.keys(REAL_STATE_PATHS).length);
+
+    // --- Counties: real shapes for every state; real NAMES for Maryland via
+    // our own FIPS_TO_COUNTY table (authoritative -- matches the dataset's own
+    // naming, e.g. disambiguates Baltimore City from Baltimore County). Other
+    // states get a "FIPS #####" placeholder since none has data yet; add a
+    // names source for them here if/when another state gets data.
+    let totalCounties = 0;
+    topojson.feature(us, us.objects.counties).features.forEach(feat => {
+      const fips5 = String(feat.id).padStart(5, '0');
+      const abbr = STATE_FIPS_TO_ABBR[fips5.slice(0,2)];
+      const name = FIPS_TO_COUNTY[fips5] || (abbr === 'MD' ? null : ('FIPS ' + fips5));
+      if (!abbr || !name) return;
+      const d = pathGen(feat);
+      const centroid = pathGen.centroid(feat);
+      const b = pathGen.bounds(feat);
+      if (!d || isNaN(centroid[0])) return;
+      REAL_COUNTY_PATHS[abbr] = REAL_COUNTY_PATHS[abbr] || {};
+      REAL_COUNTY_XY[abbr] = REAL_COUNTY_XY[abbr] || {};
+      REAL_COUNTY_BOUNDS[abbr] = REAL_COUNTY_BOUNDS[abbr] || {};
+      REAL_COUNTY_PATHS[abbr][name] = d;
+      REAL_COUNTY_XY[abbr][name] = centroid;
+      const bw = (b[1][0]-b[0][0]), bh = (b[1][1]-b[0][1]);
+      const pad = 0.6;
+      let w = bw*(1+pad), h = bh*(1+pad);
+      const aspect = W/H;
+      if (w/h > aspect) h = w/aspect; else w = h*aspect;
+      w = Math.max(w, 70); h = Math.max(h, 52);
+      REAL_COUNTY_BOUNDS[abbr][name] = { x: centroid[0]-w/2, y: centroid[1]-h/2, w, h };
+      totalCounties++;
+    });
+    if (totalCounties < 2500) throw new Error("incomplete national county set: " + totalCounties);
+    if (!REAL_COUNTY_PATHS['MD'] || Object.keys(REAL_COUNTY_PATHS['MD']).length < 20) throw new Error("Maryland counties missing or incomplete");
+
+    usingRealGeo = true;
+    realProjectionFn = projection;
+    document.getElementById('map_geoSourceNote').textContent = 'Live U.S. Census boundaries loaded.';
+  } catch (err) {
+    console.warn('Bundled geometry failed to load, using schematic (Maryland-only) fallback:', err);
+    usingRealGeo = false;
+    // No national schematic exists -- fall straight into Maryland's state view rather
+    // than showing a broken/empty nation screen. Also frame the viewBox to the
+    // schematic county layout -- otherwise it stays at the nation-scale VB_FULL
+    // box, leaving Maryland's counties tiny in a corner instead of filling the frame.
+    viewLevel = 'state'; selectedState = 'MD';
+    vb = {...VB_MD_SCHEMATIC};
+    applyViewBox();
+    document.getElementById('map_geoSourceNote').textContent = 'Live map data unavailable \u2014 showing a Maryland-only schematic fallback.';
+  }
+  // Re-jitter dot positions and re-render now that geometry (real or fallback) is known
+  assignDotPositions();
+  renderMap();
+  renderFeed();
+}
+
+function activeCountyXY(name){ return usingRealGeo ? (REAL_COUNTY_XY[selectedState]||{})[name] : COUNTY_XY[name]; }
+function activeCountyBounds(name){ return usingRealGeo ? (REAL_COUNTY_BOUNDS[selectedState]||{})[name] : COUNTY_ZOOM_BOXES[name]; }
+function activeCountyNames(){ return usingRealGeo ? Object.keys(REAL_COUNTY_PATHS[selectedState]||{}) : Object.keys(COUNTY_CELLS); }
+
+function assignDotPositions(){
+  // Records with a real street-address geocode (geoLevel === 'precise') get
+  // placed exactly; everything else -- even though it now also carries a
+  // lat/lon (a county or place centroid) -- falls back to a jittered position
+  // around its county's centroid, so records sharing a centroid don't stack
+  // exactly on top of each other.
+  const preciseRecords = records.filter(r => r.geoLevel === 'precise' && r.lat && r.lon);
+  const approxByCounty = {};
+  records.filter(r => !(r.geoLevel === 'precise' && r.lat && r.lon)).forEach(r=>{ (approxByCounty[r.county] = approxByCounty[r.county]||[]).push(r); });
+
+  preciseRecords.forEach(r=>{
+    const xy = usingRealGeo && realProjectionFn ? realProjectionFn([r.lon, r.lat]) : schematicProject(r.lon, r.lat);
+    r._x = xy[0]; r._y = xy[1]; r._precise = true;
+  });
+
+  Object.entries(approxByCounty).forEach(([county, list])=>{
+    let base = activeCountyXY(county);
+    if (!base) base = usingRealGeo ? [350,260] : (COUNTY_XY[county] || [389,162]);
+    list.forEach((r,i)=>{
+      const n = list.length;
+      const angle = (i / Math.max(n,1)) * 2*Math.PI;
+      const radius = n>1 ? 6 + Math.min(n,10)*1.1 : 0;
+      r._x = base[0] + Math.cos(angle)*radius;
+      r._y = base[1] + Math.sin(angle)*radius;
+      r._precise = false;
+    });
+  });
+}
+
+
+// Projects a real (lon, lat) into the schematic 700x520 space using the same
+// formula used to build COUNTY_XY originally -- lets a precisely-geocoded point
+// be placed correctly even when real Census geometry isn't active.
+function schematicProject(lon, lat) {
+  const lon_min = -79.6, lon_max = -74.95, lat_min = 37.85, lat_max = 39.78;
+  const cosFactor = Math.cos((lat_min + lat_max) / 2 * Math.PI / 180);
+  const VW = 700, pad = 20;
+  const scale = (VW - 2 * pad) / ((lon_max - lon_min) * cosFactor);
+  return [pad + (lon - lon_min) * cosFactor * scale, pad + (lat_max - lat) * scale];
+}
+
+let realProjectionFn = null; // set once live Census geometry loads successfully
+
+let vb = {x:0, y:0, w:700, h:520};
+const VB_FULL = {x:0, y:0, w:700, h:520};
+// Union bounding box of every county's schematic zoom box (COUNTY_ZOOM_BOXES),
+// padded slightly -- used to frame all of Maryland when zoomToState() can't use
+// the real-geometry bounds (i.e. usingRealGeo is false, the CDN geometry fetch
+// failed). Without this, zoomToState() previously left the viewBox untouched
+// in that case, which could crop counties out of view or leave them tiny in a
+// corner of the frame instead of actually zooming in on the state.
+const VB_MD_SCHEMATIC = {x:-50, y:-40, w:760, h:430};
+function applyViewBox(){ document.getElementById('map_svg').setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+
+// Label font-size is set in the same coordinate space as the map itself, so it
+// must scale with the current viewBox width or it renders many times too large
+// (or too small) once zoomed away from the full national view.
+function labelFontSize(base){
+  // Hard-capped, not just proportional: the earlier proportional-only version
+  // still rendered far too large at the Maryland state-zoom level, so this caps
+  // the maximum outright rather than relying on the vb.w ratio being well-calibrated.
+  const size = base * (vb.w / VB_FULL.w);
+  return Math.max(1.1, Math.min(2.6, size)).toFixed(2);
+}
+
+// Color scale for choropleth shading: interpolates between a "no/low data" tone
+// and a "high data" tone. t is 0..1. Using RGB linear interpolation.
+function interpolateColor(t, from, to){
+  t = Math.max(0, Math.min(1, t));
+  const f = from.match(/\w\w/g).map(h=>parseInt(h,16));
+  const to_ = to.match(/\w\w/g).map(h=>parseInt(h,16));
+  const rgb = f.map((c,i)=>Math.round(c + (to_[i]-c)*t));
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+const CHOROPLETH_LOW = 'DCD3B8';  // matches --map-land, i.e. "no data" looks like plain land
+const CHOROPLETH_HIGH = '14213D'; // --ink, i.e. "most data" is darkest
+
+function showTooltip(evt, html){
+  const tip = document.getElementById('map_mapTooltip');
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  positionTooltip(evt);
+}
+function positionTooltip(evt){
+  const tip = document.getElementById('map_mapTooltip');
+  const card = document.querySelector('.map-card').getBoundingClientRect();
+  tip.style.left = (evt.clientX - card.left + 14) + 'px';
+  tip.style.top = (evt.clientY - card.top + 10) + 'px';
+}
+function hideTooltip(){
+  document.getElementById('map_mapTooltip').style.display = 'none';
+}
+
+function renderMap(){
+  const svg = document.getElementById('map_svg');
+  let dots = '', land = '', cellsAndLabels = '';
+
+  if (viewLevel === 'nation') {
+    // National view: choropleth-shade each state by its matching record count.
+    // States with zero records render as plain, unshaded land -- not clickable
+    // for drill-down, since there's nothing there yet (keeps this genuinely
+    // multi-state-ready rather than Maryland-hardcoded).
+    const counts = {};
+    Object.keys(REAL_STATE_PATHS).forEach(abbr => {
+      counts[abbr] = records.filter(r => r.state === abbr && passesFilters(r)).length;
+    });
+    const maxCount = Math.max(1, ...Object.values(counts));
+    let statePaths = '';
+    Object.entries(REAL_STATE_PATHS).forEach(([abbr, d])=>{
+      const c = counts[abbr] || 0;
+      const fill = c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : `#${CHOROPLETH_LOW}`;
+      statePaths += `<path class="state-shape" data-state="${abbr}" data-count="${c}" d="${d}" fill="${fill}" stroke="#B8AC8A" stroke-width="0.7" />`;
+    });
+    land = `<g>${statePaths}</g>`;
+
+  } else if (viewLevel === 'state' && !selectedCounty) {
+    // Any state, zoomed to state level: choropleth-shade each county by its
+    // matching record count. Real county outlines now exist for every state,
+    // not just Maryland -- states with zero records simply show every county
+    // shaded as "no data" rather than a plain undifferentiated blob.
+    const countyNames = activeCountyNames();
+    const countyCounts = {};
+    countyNames.forEach(name => {
+      countyCounts[name] = records.filter(r => r._x !== undefined && r.state === selectedState && (r.county||'').includes(name) && passesFilters(r)).length;
+    });
+    const maxCount = Math.max(1, ...Object.values(countyCounts));
+    const built = buildCountyCellMarkup(countyCounts, maxCount);
+    land = built.land; cellsAndLabels = built.cellsAndLabels;
+
+  } else if (viewLevel === 'county') {
+    // A county is selected -- ONLY genuinely geocoded (precise) records become
+    // individual dots. Records whose location is only known at the county level
+    // are NOT shown as approximate/jittered dots here -- they're only reachable
+    // via the "Countywide" aggregate bucket in the side panel, since plotting them
+    // as dots would imply a precision the data doesn't actually have.
+    records.forEach(r=>{
+      if (r._x === undefined || !(r.county||'').includes(selectedCounty) || r.geoLevel !== 'precise') return;
+      const visible = passesFilters(r);
+      const dimmed = dimmedSector && r.type==='private_investment' && r.category !== dimmedSector;
+      const color = dotColor(r);
+      const rad = r.amount ? Math.min(4 + Math.log10(r.amount/1e5)*1.3, 11) : 4;
+      dots += `<circle class="dot ${(!visible||dimmed)?'dimmed':''}" cx="${r._x.toFixed(1)}" cy="${r._y.toFixed(1)}" r="${rad.toFixed(1)}" fill="${color}" stroke="#fff" stroke-width="1" data-id="${r.id}" data-tip="${r.company.replace(/"/g,'&quot;')} \u2014 ${(r.name||'').replace(/"/g,'&quot;')} (${fmt(r.amount)})"></circle>`;
+    });
+    const built = buildCountyCellMarkup({}, 1); // no shading needed at this level, just outlines
+    land = built.land; cellsAndLabels = built.cellsAndLabels;
+  }
+
+  svg.innerHTML = `${land}${cellsAndLabels}${dots}`;
+
+  svg.querySelectorAll('.dot').forEach(el=>{
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); location.hash = '#record/'+encodeURIComponent(el.getAttribute('data-id')); });
+    el.addEventListener('mousemove', (e)=> showTooltip(e, el.getAttribute('data-tip')));
+    el.addEventListener('mouseleave', hideTooltip);
+  });
+  svg.querySelectorAll('.county-cell').forEach(el=>{
+    el.addEventListener('click', ()=>{ zoomToCounty(el.getAttribute('data-county')); });
+    el.addEventListener('mousemove', (e)=>{
+      const name = el.getAttribute('data-county');
+      const c = el.getAttribute('data-count');
+      const t = el.getAttribute('data-total');
+      showTooltip(e, `<b>${name}</b><br>${c} record${c==='1'?'':'s'}${t && t!=='0' ? ' &middot; ' + fmt(parseFloat(t)) : ''}`);
+    });
+    el.addEventListener('mouseleave', hideTooltip);
+  });
+  svg.querySelectorAll('.state-shape').forEach(el=>{
+    const abbr = el.getAttribute('data-state');
+    const c = el.getAttribute('data-count');
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); zoomToState(abbr); });
+    el.addEventListener('mousemove', (e)=> showTooltip(e, `<b>${abbr}</b><br>${c} record${c==='1'?'':'s'}${c==='0' ? ' \u2014 click to explore counties' : ' \u2014 click to explore'}`));
+    el.addEventListener('mouseleave', hideTooltip);
+  });
+  if (!vbAnimating) applyViewBox();
+}
+
+function buildCountyCellMarkup(countyCounts, maxCount){
+  const countyTotals = {};
+  Object.keys(countyCounts).forEach(name => {
+    countyTotals[name] = records.filter(r => r._x !== undefined && (r.county||'').includes(name) && passesFilters(r) && r.amount).reduce((s,r)=>s+r.amount,0);
+  });
+  const noShading = Object.keys(countyCounts).length === 0;
+
+  if (usingRealGeo) {
+    let cells = '';
+    Object.entries(REAL_COUNTY_PATHS[selectedState]||{}).forEach(([name, d])=>{
+      const active = selectedCounty === name;
+      const c = countyCounts[name] || 0;
+      const fill = noShading ? 'var(--map-land)' : (c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : `#${CHOROPLETH_LOW}`);
+      cells += `<path class="county-cell" data-county="${name.replace(/"/g,'&quot;')}" data-count="${c}" data-total="${countyTotals[name]||0}" d="${d}" fill="${active ? 'rgba(150,114,30,0.25)' : fill}" stroke="${active ? 'var(--gold)' : '#B8AC8A'}" stroke-width="${active ? 1.8 : 0.7}" />`;
+    });
+    let labels = '';
+    Object.entries(REAL_COUNTY_XY[selectedState]||{}).forEach(([name,[x,y]])=>{
+      labels += `<text x="${x}" y="${y}" font-size="${labelFontSize(7)}" text-anchor="middle" fill="#6B6459" font-family="IBM Plex Mono, monospace" pointer-events="none">${shortCountyLabel(name)}</text>`;
+    });
+    return { land: '', cellsAndLabels: `<g>${cells}${labels}</g>` };
+  } else {
+    let cells = '';
+    Object.entries(COUNTY_CELLS).forEach(([name, d])=>{
+      const active = selectedCounty === name;
+      const c = countyCounts[name] || 0;
+      const fill = noShading ? 'transparent' : (c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : 'transparent');
+      cells += `<path class="county-cell" data-county="${name.replace(/"/g,'&quot;')}" data-count="${c}" data-total="${countyTotals[name]||0}" d="${d}" fill="${active ? 'rgba(150,114,30,0.25)' : fill}" stroke="${active ? 'var(--gold)' : '#B8AC8A'}" stroke-width="${active ? 1.8 : 0.9}" stroke-dasharray="${active || (!noShading && c>0) ? 'none' : '2,1.5'}" />`;
+    });
+    let labels = '';
+    Object.entries(COUNTY_XY).forEach(([name,[x,y]])=>{
+      if(!COUNTY_CELLS[name]) return;
+      labels += `<text x="${x}" y="${y-10}" font-size="${labelFontSize(7)}" text-anchor="middle" fill="#8A8378" font-family="IBM Plex Mono, monospace" pointer-events="none">${shortCountyLabel(name)}</text>`;
+    });
+    const land = `
+      <path d="${WESTERN_PATH}" fill="var(--map-land)" stroke="#B8AC8A" stroke-width="1.2"/>
+      <path d="${EASTERN_PATH}" fill="var(--map-land)" stroke="#B8AC8A" stroke-width="1.2"/>`;
+    const cellsAndLabels = `
+      <defs><clipPath id="landClip"><path d="${WESTERN_PATH}" /><path d="${EASTERN_PATH}" /></clipPath></defs>
+      <g clip-path="url(#landClip)">${cells}${labels}</g>`;
+    return { land, cellsAndLabels };
+  }
+}
+
+function shortCountyLabel(name){
+  const map = { "Prince George's":"P.G.", "Baltimore City":"Balt. City", "Baltimore County":"Balt. Co.",
+    "Anne Arundel":"Anne Arun.", "St. Mary's":"St. Mary's", "Queen Anne's":"Q. Anne's" };
+  return map[name] || name;
+}
+
+let selectedCounty = null;
+let vbAnimating = false;
+function animateViewBox(target, duration=450){
+  vbAnimating = true;
+  const start = {...vb};
+  const t0 = performance.now();
+  function step(now){
+    const t = Math.min(1, (now - t0) / duration);
+    const e = 1 - Math.pow(1-t, 3); // ease-out cubic
+    vb = {
+      x: start.x + (target.x-start.x)*e, y: start.y + (target.y-start.y)*e,
+      w: start.w + (target.w-start.w)*e, h: start.h + (target.h-start.h)*e
+    };
+    applyViewBox();
+    if (t < 1) requestAnimationFrame(step);
+    else { vbAnimating = false; renderMap(); } // final settle-render so labels resize correctly for the landed viewBox
+  }
+  requestAnimationFrame(step);
+}
+function zoomToState(abbr){
+  viewLevel = 'state'; selectedState = abbr; selectedCounty = null; viewingBucket = null;
+  showCount = 15;
+  const box = usingRealGeo ? REAL_STATE_BOUNDS[abbr] : VB_MD_SCHEMATIC;
+  if (box) animateViewBox(box);
+  renderMap();
+  renderFeed();
+  document.querySelector('.feed-scroll').scrollTop = 0;
+}
+function zoomToCounty(name){
+  viewLevel = 'county'; selectedCounty = name; viewingBucket = null;
+  showCount = 15;
+  const box = activeCountyBounds(name);
+  if (box) animateViewBox(box);
+  renderMap();
+  renderFeed();
+  document.querySelector('.feed-scroll').scrollTop = 0;
+}
+function exitCountyView(){
+  viewLevel = 'state'; selectedCounty = null; viewingBucket = null;
+  showCount = 15;
+  const box = usingRealGeo ? REAL_STATE_BOUNDS[selectedState] : VB_MD_SCHEMATIC;
+  animateViewBox(box || VB_FULL);
+  renderMap();
+  renderFeed();
+}
+function exitToNation(){
+  viewLevel = 'nation'; selectedState = null; selectedCounty = null; viewingBucket = null;
+  showCount = 15;
+  animateViewBox(VB_FULL);
+  renderMap();
+  renderFeed();
+}
+function showBucket(kind){
+  viewingBucket = kind;
+  showCount = 15;
+  renderFeed();
+  document.querySelector('.feed-scroll').scrollTop = 0;
+}
+function exitBucket(){
+  viewingBucket = null;
+  showCount = 15;
+  renderFeed();
+}
+
+// --- Zoom / pan ---
+const svgEl = () => document.getElementById('map_svg');
+function svgPoint(evt){
+  const svg = svgEl();
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+function zoomAt(factor, cx, cy){
+  const newW = Math.min(VB_FULL.w, Math.max(90, vb.w*factor));
+  const newH = newW * (VB_FULL.h/VB_FULL.w);
+  const dx = (cx - vb.x) / vb.w;
+  const dy = (cy - vb.y) / vb.h;
+  vb = { x: cx - dx*newW, y: cy - dy*newH, w: newW, h: newH };
+  clampViewBox();
+  applyViewBox();
+}
+function clampViewBox(){
+  vb.x = Math.max(VB_FULL.x - vb.w*0.3, Math.min(vb.x, VB_FULL.x + VB_FULL.w - vb.w*0.7));
+  vb.y = Math.max(VB_FULL.y - vb.h*0.3, Math.min(vb.y, VB_FULL.y + VB_FULL.h - vb.h*0.7));
+}
+function resetView(){ vb = {...VB_FULL}; applyViewBox(); }
+
+let isPanning = false, panMoved = false, panStart = null, vbStart = null;
+const PAN_MOVE_THRESHOLD = 3; // pixels -- below this, treat it as a click, not a drag
+document.addEventListener('DOMContentLoaded', ()=>{});
+function initMapControls(){
+  const svg = svgEl();
+  svg.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const p = svgPoint(e);
+    zoomAt(e.deltaY > 0 ? 1.15 : 0.87, p.x, p.y);
+    renderMap(); // safe to re-render here: wheel events aren't part of the click/drag path
+  }, {passive:false});
+  svg.addEventListener('mousedown', e=>{
+    isPanning = true; panMoved = false; panStart = {x:e.clientX, y:e.clientY}; vbStart = {...vb};
+    svg.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!isPanning) return;
+    const dx = e.clientX - panStart.x, dy = e.clientY - panStart.y;
+    if (Math.hypot(dx, dy) > PAN_MOVE_THRESHOLD) panMoved = true;
+    if (!panMoved) return; // don't move the view (or eat a plain click) for tiny jitter
+    const scale = vb.w / svg.getBoundingClientRect().width;
+    vb.x = vbStart.x - dx*scale;
+    vb.y = vbStart.y - dy*scale;
+    clampViewBox();
+    applyViewBox();
+  });
+  // Only re-render (to resize labels) after a genuine drag -- doing this on every
+  // mouseup would destroy/rebuild the SVG before a plain click's own click event
+  // fires, silently breaking clicks on dots/counties/states.
+  window.addEventListener('mouseup', ()=>{ if(isPanning && panMoved) renderMap(); });
+  window.addEventListener('mouseup', ()=>{ isPanning=false; svgEl().style.cursor='grab'; });
+  document.getElementById('map_zoomIn').addEventListener('click', ()=>{ zoomAt(0.7, vb.x+vb.w/2, vb.y+vb.h/2); renderMap(); });
+  document.getElementById('map_zoomOut').addEventListener('click', ()=>{ zoomAt(1.4, vb.x+vb.w/2, vb.y+vb.h/2); renderMap(); });
+  document.getElementById('map_zoomReset').addEventListener('click', ()=>{ resetView(); renderMap(); });
+  svg.style.cursor = 'grab';
+}
+
+function renderLegend(){
+  const counts = {};
+  records.forEach(r=>{ counts[r.category] = (counts[r.category]||0)+1; });
+  const sectors = Object.keys(SECTOR_COLORS).filter(s=>counts[s]);
+  const pubCount = records.filter(r=>r.type==='public_investment').length;
+  let html = sectors.map(s=>
+    `<span class="legend-item ${dimmedSector && dimmedSector!==s ? 'dimmed':''}" onclick="toggleDim('${s}')">
+      <span class="legend-dot" style="background:${SECTOR_COLORS[s]}"></span>${labelize(s)} (${counts[s]})
+    </span>`
+  ).join('');
+  if(pubCount) html += `<span class="legend-item"><span class="legend-dot" style="background:${PUBLIC_DOT_COLOR}"></span>Public investment (${pubCount})</span>`;
+  document.getElementById('map_legend').innerHTML = html;
+}
+function toggleDim(s){ dimmedSector = dimmedSector===s ? null : s; renderLegend(); renderMap(); }
+
+function feedRowHtml(r, i){
+  return `
+    <div class="feed-row" onclick="location.hash='#record/${encodeURIComponent(r.id)}'">
+      <span class="feed-row-index mono">${String(i+1).padStart(2,'0')}</span>
+      <span class="feed-row-dot" style="background:${dotColor(r)}"></span>
+      <span class="feed-row-conf conf-${r.confidence}" title="${r.confidence} confidence"></span>
+      <div class="feed-row-main">
+        <div class="feed-row-title">${r.company}${r.name ? ' — '+r.name : ''}${r.isVolatile ? ' \u26A0' : ''}</div>
+        <div class="feed-row-sub">${r.place ? r.place+', ' : ''}${r.county ? r.county+', ' : ''}MD · ${r.dateAnnounced || 'date unknown'} · ${labelize(r.category)}</div>
+      </div>
+      <span class="feed-row-amt mono">${fmt(r.amount)}</span>
+      <span class="feed-row-chevron">\u203a</span>
+    </div>`;
+}
+
+
+function renderContextHeader(){
+  const el = document.getElementById('map_countyHeader');
+
+  if(viewLevel === 'nation'){
+    el.style.display = 'block';
+    el.innerHTML = `<div class="county-header">
+      <div class="county-header-title serif">United States</div>
+      <div class="county-header-stats mono"><span>Click any state to explore its counties \u2014 shading shows record counts where they exist.</span></div>
+    </div>`;
+    return;
+  }
+
+  if(viewLevel === 'state'){
+    el.style.display = 'block';
+    const stateRecords = records.filter(r => r.state === selectedState);
+    const withCounty = stateRecords.filter(r => r.geoLevel !== 'state');
+    const stateOnly = stateRecords.filter(r => r.geoLevel === 'state');
+    const total = withCounty.filter(r=>r.amount).reduce((s,r)=>s+r.amount,0);
+    const stateName = STATE_ABBR_TO_NAME[selectedState] || selectedState;
+    if(viewingBucket === 'state-unspecified'){
+      el.innerHTML = `<div class="county-header">
+        <div><span class="back-link" onclick="exitBucket()">\u2190 Back to ${stateName}</span></div>
+        <div class="county-header-title serif">Statewide entries \u2014 no county specified</div>
+        <div class="county-header-stats mono"><span><b>${stateOnly.length}</b> record${stateOnly.length===1?'':'s'}</span></div>
+      </div>`;
+    } else if (withCounty.length === 0 && stateOnly.length === 0) {
+      el.innerHTML = `<div class="county-header">
+        <div><span class="back-link" onclick="exitToNation()">\u2190 Back to USA</span></div>
+        <div class="county-header-title serif">${stateName}</div>
+        <div class="county-header-stats mono"><span>No records collected for this state yet \u2014 county outlines below are shown for reference.</span></div>
+      </div>`;
+    } else {
+      el.innerHTML = `<div class="county-header">
+        <div><span class="back-link" onclick="exitToNation()">\u2190 Back to USA</span></div>
+        <div class="county-header-title serif">${stateName}</div>
+        <div class="county-header-stats mono">
+          <span><b>${withCounty.length}</b> record${withCounty.length===1?'':'s'} mapped to a county</span>
+          <span><b>${fmt(total)}</b> tracked</span>
+          ${stateOnly.length ? `<span class="bucket-link" onclick="showBucket('state-unspecified')">+ <b>${stateOnly.length}</b> statewide (no county specified) \u2192</span>` : ''}
+        </div>
+      </div>`;
+    }
+    return;
+  }
+
+  if(viewLevel === 'county'){
+    el.style.display = 'block';
+    const inCounty = records.filter(r=>(r.county||'').includes(selectedCounty));
+    const precise = inCounty.filter(r=>r.geoLevel==='precise');
+    const countyOnly = inCounty.filter(r=>r.geoLevel==='county');
+    const total = precise.filter(r=>r.amount).reduce((s,r)=>s+r.amount,0);
+    if(viewingBucket === 'county-unspecified'){
+      el.innerHTML = `<div class="county-header">
+        <div><span class="back-link" onclick="exitBucket()">\u2190 Back to ${selectedCounty}</span></div>
+        <div class="county-header-title serif">${selectedCounty} \u2014 no precise address</div>
+        <div class="county-header-stats mono"><span><b>${countyOnly.length}</b> record${countyOnly.length===1?'':'s'}</span></div>
+      </div>`;
+    } else {
+      const sectorCounts = {};
+      precise.forEach(r=>{ sectorCounts[r.category]=(sectorCounts[r.category]||0)+1; });
+      const topSector = Object.entries(sectorCounts).sort((a,b)=>b[1]-a[1])[0];
+      el.innerHTML = `<div class="county-header">
+        <div><span class="back-link" onclick="exitCountyView()">\u2190 Back to Maryland</span></div>
+        <div class="county-header-title serif">${selectedCounty}</div>
+        <div class="county-header-stats mono">
+          <span><b>${precise.length}</b> geocoded record${precise.length===1?'':'s'}</span>
+          <span><b>${fmt(total)}</b> tracked</span>
+          ${topSector ? `<span>top sector: <b>${labelize(topSector[0])}</b> (${topSector[1]})</span>` : ''}
+          ${countyOnly.length ? `<span class="bucket-link" onclick="showBucket('county-unspecified')">+ <b>${countyOnly.length}</b> without a precise address \u2192</span>` : ''}
+        </div>
+      </div>`;
+    }
+    return;
+  }
+}
+
+function renderFeed(){
+  renderContextHeader();
+  // Nation level now shows the feed too -- passesFilters applies no state/county
+  // scoping at this level (see its 'nation' branch), so this naturally lists
+  // every record currently matching the sector/type/confidence/year/magnitude
+  // filters, across every state, same as any other level.
+  let list = sortRecords(records.filter(passesFilters));
+  document.getElementById('map_feedCount').textContent = list.length + ' of ' + records.length;
+  document.getElementById('map_mapCount').textContent = '(' + list.length + ' shown)';
+  const shown = list.slice(0, showCount);
+  document.getElementById('map_feedList').innerHTML = shown.map((r,i)=>feedRowHtml(r,i)).join('');
+  document.getElementById('map_showMoreWrap').style.display = list.length > showCount ? 'block' : 'none';
+  renderMap();
+}
+
+function initMapFilters(){
+const sectors = [...new Set(records.map(r=>r.category))].sort();
+document.getElementById('map_filterSector').innerHTML = '<option value="all">All categories</option>' + sectors.map(s=>`<option value="${s}">${CATEGORY_LABELS[s]||labelize(s)}</option>`).join('');
+const privInstruments = [...new Set(records.filter(r=>r.type==='private_investment').map(r=>r.recordType))].filter(Boolean).sort();
+const pubInstruments = [...new Set(records.filter(r=>r.type==='public_investment').map(r=>r.fundingMechanism))].filter(Boolean).sort();
+document.getElementById('map_filterType').innerHTML = '<option value="all">All instruments</option>'
+  + '<optgroup label="Private — record type">' + privInstruments.map(t=>`<option value="${t}">${INSTRUMENT_LABELS[t]||labelize(t)}</option>`).join('') + '</optgroup>'
+  + '<optgroup label="Public — funding mechanism">' + pubInstruments.map(t=>`<option value="${t}">${INSTRUMENT_LABELS[t]||labelize(t)}</option>`).join('') + '</optgroup>';
+
+const awardLevels = [...new Set(records.map(r=>r.awardingLevel))].filter(Boolean).sort();
+document.getElementById('map_filterAwardLevel').innerHTML = '<option value="all">All awarding levels</option>' + awardLevels.map(l=>`<option value="${l}">${l.charAt(0).toUpperCase()+l.slice(1)}</option>`).join('');
+
+const years = [...new Set(records.map(r=> r.dateAnnounced ? r.dateAnnounced.slice(0,4) : 'unknown'))].sort((a,b)=>b.localeCompare(a));
+document.getElementById('map_filterYear').innerHTML = '<option value="all">All years</option>' + years.map(y=>`<option value="${y}">${y==='unknown'?'Unknown date':y}</option>`).join('');
+}
+
+document.getElementById('map_filterSector').addEventListener('change', e=>{ activeSector=e.target.value; showCount=15; renderFeed(); });
+document.getElementById('map_filterType').addEventListener('change', e=>{ activeType=e.target.value; showCount=15; renderFeed(); });
+document.getElementById('map_filterAwardLevel').addEventListener('change', e=>{ activeAwardLevel=e.target.value; showCount=15; renderFeed(); });
+document.getElementById('map_filterInvType').addEventListener('change', e=>{ activeInvType=e.target.value; showCount=15; renderFeed(); });
+
+document.getElementById('map_filterConf').addEventListener('change', e=>{ activeConf=e.target.value; showCount=15; renderFeed(); });
+document.getElementById('map_filterMagnitude').addEventListener('change', e=>{ activeMagnitude=e.target.value; showCount=15; renderFeed(); });
+
+document.getElementById('map_filterYear').addEventListener('change', e=>{ activeYear=e.target.value; showCount=15; renderFeed(); });
+
+document.getElementById('map_sortBy').addEventListener('change', e=>{ sortMode=e.target.value; showCount=15; renderFeed(); });
+document.getElementById('map_showMoreBtn').addEventListener('click', ()=>{ showCount+=25; renderFeed(); });
+
+initMapControls();
+loadRealGeography(); // runs in parallel with the data load; whichever finishes second re-places the dots
+window.mapInitData = function(){ initMapFilters(); assignDotPositions(); renderStats(); renderLegend(); renderFeed(); };
+
+// Expose functions referenced by inline onclick="" attributes in the map markup
+// (inline handlers execute in global scope, so they need to escape this IIFE).
+window.exitBucket = exitBucket;
+window.exitToNation = exitToNation;
+window.exitCountyView = exitCountyView;
+window.showBucket = showBucket;
+window.toggleDim = toggleDim;
+window.mapRenderAll = function(){ renderStats(); renderLegend(); renderFeed(); };
+
+})();
+
+loadRecords();
+
+</script>
+
+</body>
+</html>
