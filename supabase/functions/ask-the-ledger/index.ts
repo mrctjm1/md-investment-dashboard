@@ -5,7 +5,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
 
-const MODEL = "claude-opus-5";
+const MODEL = "claude-sonnet-5";
 const MAX_QUESTION_CHARS = 500;
 const ALLOWED_ORIGINS = new Set([
   "https://mrctjm1.github.io",
@@ -88,11 +88,9 @@ Deno.serve(async (req) => {
 
   try {
     const records = await loadCompactRecords();
-    const response = await anthropic.beta.messages.create({
+    const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
       output_config: { effort: "medium" },
       system: [
         { type: "text", text: SYSTEM_PROMPT },
