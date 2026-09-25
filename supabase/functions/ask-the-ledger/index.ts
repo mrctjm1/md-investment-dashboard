@@ -15,7 +15,7 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
-// The anon key can read only md_dashboard.records (published rows) -- no
+// The anon key can read only the md_dashboard views (published rows) -- no
 // service-role key needed, so this function has no more access than the site.
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -25,7 +25,7 @@ const supabase = createClient(
 
 const SYSTEM_PROMPT = `You answer questions about a real (not illustrative) dataset of Maryland investment records -- both private-sector capital investments and public-sector funding awards (grants, bonds, contracts, loans, tax credits) -- collected by a research pipeline with mandatory confidence and source tagging on every record, but no human review yet for some subsets.
 
-The full dataset is attached as records.csv, one row per record. Always compute answers with code (e.g. pandas) against that file -- never estimate counts, totals, or rankings. Columns:
+The full dataset is attached as records.csv, one row per record. Always compute answers with code (e.g. pandas) against the attached files -- never estimate counts, totals, or rankings. Columns:
 - type: private_investment (a company's own capital decision) or public_investment (a government funding award)
 - company: company or award recipient; name: project or award name
 - category: industry sector (private) or purpose (public)
@@ -38,6 +38,8 @@ The full dataset is attached as records.csv, one row per record. Always compute 
 - jobs_new, jobs_retained, jobs_construction, jobs_note: job figures where known
 - is_volatile: true if the figure is disputed or likely to change
 - date: announcement or award date
+
+demographics.csv is also attached: one row per U.S. state and per Maryland county, with fips, level (state or county), state, name, county (spelled exactly as in records.csv for Maryland counties), population, median_household_income and poverty_rate (Census ACS 2020-2024 5-year estimates), and unemployment_rate (BLS 2025, an 11-month average because October 2025 was not collected). Use it for per-capita and demographic-context questions. Records whose county is "Maryland (county unspecified)" or spans two counties ("X & Y") don't map to a single county, so say how you handled them.
 
 Answer ONLY from this data. Be honest about gaps and low-confidence entries, and be clear about which figures are private capital vs. public funding. Keep the final answer concise (a list if the question needs one), in plain text, not Markdown, and don't describe your code or method unless asked.`;
 
@@ -57,7 +59,7 @@ function json(body: unknown, status: number, origin: string | null): Response {
   });
 }
 
-const CSV_COLUMNS: [string, string][] = [
+const RECORD_COLUMNS: [string, string][] = [
   ["type", "type"], ["company", "company"], ["name", "name"], ["category", "category"],
   ["state", "state"], ["county", "county"], ["place", "place"],
   ["record_type", "recordType"], ["funding_mechanism", "fundingMechanism"],
@@ -70,10 +72,22 @@ const CSV_COLUMNS: [string, string][] = [
   ["is_volatile", "isVolatile"], ["date", "dateAnnounced"],
 ];
 
+const DEMOGRAPHIC_COLUMNS: [string, string][] = [
+  ["fips", "fips"], ["level", "geoLevel"], ["state", "state"], ["name", "name"], ["county", "county"],
+  ["population", "population"], ["median_household_income", "medianHouseholdIncome"],
+  ["poverty_rate", "povertyRate"], ["unemployment_rate", "unemploymentRate"],
+];
+
 function csvCell(v: unknown): string {
   if (v === null || v === undefined) return "";
   const s = String(v);
   return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+
+function toCsv(rows: Record<string, unknown>[], columns: [string, string][]): string {
+  const lines = [columns.map(([header]) => header).join(",")];
+  for (const r of rows) lines.push(columns.map(([, key]) => csvCell(r[key])).join(","));
+  return lines.join("\n") + "\n";
 }
 
 async function loadRecordsCsv(): Promise<string> {
@@ -89,9 +103,18 @@ async function loadRecordsCsv(): Promise<string> {
     rows.push(...data);
     if (data.length < PAGE) break;
   }
-  const lines = [CSV_COLUMNS.map(([header]) => header).join(",")];
-  for (const r of rows) lines.push(CSV_COLUMNS.map(([, key]) => csvCell(r[key])).join(","));
-  return lines.join("\n") + "\n";
+  return toCsv(rows, RECORD_COLUMNS);
+}
+
+// All states plus Maryland's counties -- the only counties any record can sit in.
+async function loadDemographicsCsv(): Promise<string> {
+  const { data, error } = await supabase
+    .from("demographics")
+    .select("*")
+    .or("geoLevel.eq.state,state.eq.MD")
+    .order("fips");
+  if (error) throw error;
+  return toCsv(data, DEMOGRAPHIC_COLUMNS);
 }
 
 Deno.serve(async (req) => {
@@ -112,19 +135,21 @@ Deno.serve(async (req) => {
     return json({ error: `Please keep questions under ${MAX_QUESTION_CHARS} characters.` }, 400, origin);
   }
 
-  let fileId: string | null = null;
+  const fileIds: string[] = [];
   try {
-    const csv = await loadRecordsCsv();
-    const uploaded = await anthropic.files.upload({
-      file: await toFile(new TextEncoder().encode(csv), "records.csv", { type: "text/csv" }),
-    });
-    fileId = uploaded.id;
+    const [recordsCsv, demographicsCsv] = await Promise.all([loadRecordsCsv(), loadDemographicsCsv()]);
+    for (const [name, csv] of [["records.csv", recordsCsv], ["demographics.csv", demographicsCsv]]) {
+      const uploaded = await anthropic.files.upload({
+        file: await toFile(new TextEncoder().encode(csv), name, { type: "text/csv" }),
+      });
+      fileIds.push(uploaded.id);
+    }
 
     const messages: Anthropic.MessageParam[] = [{
       role: "user",
       content: [
         { type: "text", text: question.trim() },
-        { type: "container_upload", file_id: fileId },
+        ...fileIds.map((id) => ({ type: "container_upload" as const, file_id: id })),
       ],
     }];
     let response: Anthropic.Message;
@@ -163,6 +188,6 @@ Deno.serve(async (req) => {
     }
     return json({ error: "Something went wrong answering that question." }, 500, origin);
   } finally {
-    if (fileId) anthropic.files.delete(fileId).catch((e) => console.error("file cleanup failed", e));
+    for (const id of fileIds) anthropic.files.delete(id).catch((e) => console.error("file cleanup failed", e));
   }
 });

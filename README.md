@@ -11,6 +11,12 @@ and public funding awards.
 - **Map geometry:** `data/geo/us-counties-10m.json` — Census boundaries from
   [us-atlas](https://github.com/topojson/us-atlas) 3.0.1, bundled so the map never
   depends on a third-party CDN at runtime.
+- **Demographics:** `md_dashboard.demographics` — population, median household
+  income and poverty rate (Census ACS 2020–2024 5-year) and unemployment (BLS
+  LAUS 2025) for every state and county. Drives the map's "Shade" menu and the
+  state/county header stats. Refreshed about once a year by
+  `md-investment-pipeline/scripts/census_demographics.py` (the BLS file must be
+  downloaded by hand; BLS blocks scripted access).
 - **Ask the Ledger:** `supabase/functions/ask-the-ledger/` — a Supabase Edge
   Function that reads the same view and calls the Claude API with a key held in
   Supabase secrets. The browser only ever sends the question.

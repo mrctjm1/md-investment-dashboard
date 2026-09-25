@@ -186,6 +186,8 @@
   .county-header-title { font-size:1.1rem; font-weight:600; margin:2px 0 6px 0; }
   .county-header-stats { display:flex; gap:16px; font-size:0.76rem; flex-wrap:wrap; }
   .bucket-link { color:var(--gold); cursor:pointer; text-decoration:underline; }
+  .county-header-demo { font-size:0.72rem; color:var(--charcoal); margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); line-height:1.6; }
+  .demo-source { font-size:0.62rem; color:var(--slate); font-style:italic; margin-top:3px; }
   .legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-size:0.7rem; color:var(--slate); }
   .legend-item { display:flex; align-items:center; gap:5px; cursor:pointer; }
   .legend-item.dimmed { opacity:0.35; }
@@ -354,7 +356,7 @@
   <div style="max-width:1320px; margin:0 auto; padding:10px 32px 0 32px;"><a href="#" onclick="location.hash=''; return false;" style="font-size:0.8rem;">&larr; Back to Investments</a></div>
   <div class="stat-row mono" id="map_statRow" style="max-width:1320px; margin:0 auto; padding:10px 32px;"></div>
 <div class="method-banner">
-  <b>Read before the numbers:</b> real pipeline output — 1,221 records (325 private-sector investments + 896 public-sector awards), 24 jurisdictions, no dollar floor applied. Public-investment extraction is not yet complete (see Sources). Published without a human review gate (pilot-phase exception) — confidence tags below are load-bearing, not decorative.
+  <b>Read before the numbers:</b> real pipeline output — <span class="js-total">…</span> records (<span class="js-priv">…</span> private-sector investments + <span class="js-pub">…</span> public-sector awards), <span class="js-jur">…</span> jurisdictions, no dollar floor applied. Public-investment extraction is not yet complete (see Sources). Published without a human review gate (pilot-phase exception) — confidence tags below are load-bearing, not decorative.
 </div>
 
 <div class="toolbar">
@@ -404,13 +406,21 @@
         <button id="map_zoomOut" title="Zoom out">−</button>
         <button id="map_zoomReset" title="Reset view">Reset</button>
         <span class="map-controls-hint">scroll to zoom · drag to pan</span>
+        <select id="map_shadeBy" title="What the map shading shows" style="margin-left:auto;">
+          <option value="records">Shade: matching records</option>
+          <option value="perCapita">Shade: tracked $ per resident</option>
+          <option value="population">Shade: population</option>
+          <option value="medianHouseholdIncome">Shade: median household income</option>
+          <option value="povertyRate">Shade: poverty rate</option>
+          <option value="unemploymentRate">Shade: unemployment rate</option>
+        </select>
       </div>
       <svg id="map_svg" viewBox="0 0 700 520" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="legend" id="map_legend"></div>
       <div class="legend-scale">
-        <span>Fewer records</span><div class="legend-scale-bar"></div><span>More records</span>
+        <span id="map_scaleLow">Fewer records</span><div class="legend-scale-bar"></div><span id="map_scaleHigh">More records</span>
       </div>
-      <div class="map-note"><span id="map_geoSourceNote">Loading live boundaries\u2026</span> Shading reflects how many matching records are in each state/county \u2014 hover for details, click to drill in. At the county level, only geocoded records show as individual dots; everything else is reachable via the "without a precise address" link above the feed.</div>
+      <div class="map-note"><span id="map_geoSourceNote">Loading live boundaries…</span> Shading shows the measure picked in "Shade" (matching records by default) for each state/county — hover for details, click to drill in. At the county level, only geocoded records show as individual dots; everything else is reachable via the "without a precise address" link above the feed.</div>
     </div>
   </div>
 
@@ -433,7 +443,7 @@
 <div id="sourcesView" class="detail-page" style="display:none; max-width:900px;">
   <button class="back-link" onclick="location.hash=''">← Back to investments</button>
   <h2 class="detail-title serif">Data sources &amp; methodology</h2>
-  <div class="detail-sub">1,221 records — 325 private-sector investments, 896 public-sector awards — as of the 2026-09-17 export.</div>
+  <div class="detail-sub"><span class="js-total">…</span> records — <span class="js-priv">…</span> private-sector investments, <span class="js-pub">…</span> public-sector awards — read live from the project database.</div>
 
   <div class="detail-section"><h4>Status of this export</h4>
   <p>Private-investment extraction is complete for this pilot phase. Public-investment extraction is <b>not yet complete</b>: federal grants (430 records) are done; the enacted state capital budget (Senate Bill 283, ~305 of an estimated 600+ line items) and federal contracts (~135 of 483 candidates at the $100M+ floor) were paused mid-extraction. Every record currently published, complete or not, meets the full sourcing/verification bar — nothing partial or unverified was included.</p></div>
@@ -461,6 +471,11 @@
   <p><b>General/investigative:</b> The Baltimore Banner, Baltimore Sun, Washington Post, Maryland Matters.<br>
   <b>Trade press:</b> BioBuzz, BioSpace, Construction Dive, Data Center Dynamics, Business Facilities Magazine, REBusinessOnline, WBOC, WMAR2 News, Fox Baltimore, Eye On Annapolis, MoCoShow, Nottingham MD, The BayNet.</p></div>
 
+  <div class="detail-section"><h4>Demographic context</h4>
+  <p><b>U.S. Census Bureau, American Community Survey</b> (2020–2024 5-year estimates) — population (table B01003), median household income (B19013) and poverty rate (B17001) for every state and county. Five-year estimates carry margins of error, which are larger for small counties.<br>
+  <b>U.S. Bureau of Labor Statistics, Local Area Unemployment Statistics</b> — 2025 county unemployment rates. The 2025 figures average 11 months: October 2025 data were not collected because of the federal government shutdown, so they are not fully comparable with other years. State rates are totaled from county figures.<br>
+  "Tracked $ per resident" divides all tracked dollars in an area (private + public, all years) by its population. It measures what this dataset has captured, not total investment.</p></div>
+
   <div class="detail-section"><h4>Methodology notes</h4>
   <p>Every record cites at least one of the sources above (verified — no record is published without a real, checkable citation). Dollar amounts carry a confidence rating (high/medium/low) reflecting how directly the source discloses the figure. Private-sector and public-sector records are tracked separately, since they represent different decisions — but the same underlying project can appear in both, cross-linked when a public subsidy or grant helped fund a specific private investment already in the dataset. Geographic precision varies by source: every record has at least a county-level coordinate (a real Census Bureau county centroid, used as a fallback), and a subset additionally have a precise street-address-level geocode.</p></div>
 </div>
@@ -476,11 +491,11 @@ let records = [];
 // view; every pipeline table is closed to it at the database level.
 const SUPABASE_URL = 'https://odydzugihzwepcyabmza.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_e4EL7E9iApP4wVQ-O0y-bA_xM0liqBL';
-async function fetchRecords(){
+async function fetchView(view, orderBy){
   const PAGE = 1000; // Supabase's per-request row cap
   let all = [];
   for(let from = 0; ; from += PAGE){
-    const res = await fetch(SUPABASE_URL + '/rest/v1/records?select=*&order=id', {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/' + view + '?select=*&order=' + orderBy, {
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
         'Accept-Profile': 'md_dashboard',
@@ -492,6 +507,41 @@ async function fetchRecords(){
     all = all.concat(page);
     if(page.length < PAGE) return all;
   }
+}
+
+// ---------- demographics (md_dashboard.demographics) ----------
+// Census ACS 5-year population / median household income / poverty rate and
+// BLS LAUS annual unemployment, per state and county, keyed by FIPS.
+const DEMO = { byFips: {}, stateByAbbr: {}, acsRelease: null, lausYear: null };
+function indexDemographics(rows){
+  rows.forEach(d=>{
+    DEMO.byFips[d.fips] = d;
+    if(d.geoLevel === 'state') DEMO.stateByAbbr[d.state] = d;
+  });
+  if(rows.length){ DEMO.acsRelease = rows[0].acsRelease; DEMO.lausYear = rows[0].lausYear; }
+}
+function fmtPop(n){
+  if(n>=1e6) return (n/1e6).toFixed(2)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+  return String(n);
+}
+function demoSourceNote(){
+  if(!DEMO.acsRelease) return '';
+  const acs = DEMO.acsRelease.replace('-', '–');
+  const laus = DEMO.lausYear === 2025 ? 'BLS LAUS 2025 (11-month average; October 2025 not collected due to the federal shutdown)' : 'BLS LAUS ' + DEMO.lausYear + ' annual average';
+  return 'Population, income and poverty: Census ' + acs + '. Unemployment: ' + laus + '.';
+}
+// One-line demographic summary for a state/county header. trackedTotal is the
+// dollar sum of all tracked records there (private + public, all years).
+function demoHeaderHTML(d, trackedTotal){
+  if(!d) return '';
+  const parts = [];
+  if(d.population != null) parts.push('Pop. <b>' + fmtPop(d.population) + '</b>');
+  if(d.medianHouseholdIncome != null) parts.push('Median household income <b>$' + d.medianHouseholdIncome.toLocaleString('en-US') + '</b>');
+  if(d.povertyRate != null) parts.push('Poverty <b>' + d.povertyRate.toFixed(1) + '%</b>');
+  if(d.unemploymentRate != null) parts.push('Unemployment <b>' + d.unemploymentRate.toFixed(1) + '%</b>');
+  if(d.population && trackedTotal) parts.push('<span title="All tracked dollars here (private + public, all years) divided by residents">$' + Math.round(trackedTotal / d.population).toLocaleString('en-US') + ' tracked per resident</span>');
+  return `<div class="county-header-demo mono">${parts.join(' · ')}</div><div class="demo-source">${esc(demoSourceNote())}</div>`;
 }
 
 // ---------- state ----------
@@ -806,16 +856,30 @@ window.addEventListener('hashchange', ()=>{ if(recordsLoaded) route(); });
 
 // ---------- data load ----------
 let recordsLoaded = false;
+// The banner and Sources page state the live record counts, not a snapshot's.
+function renderRecordCounts(){
+  const nPriv = records.filter(r=>r.type==='private_investment').length;
+  const nPub = records.length - nPriv;
+  const nJur = new Set(records.map(r=>r.county).filter(c=>c && c!=='Maryland (county unspecified)' && !c.includes(' & '))).size;
+  document.querySelectorAll('.js-total').forEach(el=>el.textContent = fmtInt(records.length));
+  document.querySelectorAll('.js-priv').forEach(el=>el.textContent = fmtInt(nPriv));
+  document.querySelectorAll('.js-pub').forEach(el=>el.textContent = fmtInt(nPub));
+  document.querySelectorAll('.js-jur').forEach(el=>el.textContent = nJur);
+}
 async function loadRecords(){
   document.getElementById('cardGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Loading investment data…</div>';
+  // Demographics are an enhancement: if they fail to load, the dashboard still works without them.
+  const demoPromise = fetchView('demographics', 'fips').catch(err=>{ console.warn('Demographics unavailable:', err); return []; });
   try {
-    records = await fetchRecords();
+    records = await fetchView('records', 'id');
   } catch(err){
     console.error('Failed to load records:', err);
     document.getElementById('cardGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Could not load investment data. Please try again later.</div>';
     return;
   }
+  indexDemographics(await demoPromise);
   recordsLoaded = true;
+  renderRecordCounts();
   initFilters();
   if(window.mapInitData) window.mapInitData();
   render();
@@ -946,6 +1010,15 @@ let usingRealGeo = false;
 let REAL_COUNTY_PATHS = {};   // name -> d
 let REAL_COUNTY_XY = {};      // name -> [x,y] centroid in the 700x520 space
 let REAL_COUNTY_BOUNDS = {};  // name -> {x,y,w,h} zoom box in the 700x520 space
+let REAL_COUNTY_FIPS = {};    // name -> 5-digit county FIPS (joins the map to demographics)
+const MD_COUNTY_TO_FIPS = Object.fromEntries(Object.entries(FIPS_TO_COUNTY).map(([f,n])=>[n,f]));
+// FIPS for a county as the map names it (Maryland: our own names; other states: "FIPS #####").
+function countyFips(stateAbbr, name){
+  return (REAL_COUNTY_FIPS[stateAbbr]||{})[name] || (stateAbbr === 'MD' ? MD_COUNTY_TO_FIPS[name] : null);
+}
+function countyDemo(stateAbbr, name){ const f = countyFips(stateAbbr, name); return f ? DEMO.byFips[f] : null; }
+// Display name: Maryland keeps its own county names; elsewhere use the Census name, not "FIPS #####".
+function countyDisplayName(stateAbbr, name){ const d = stateAbbr === 'MD' ? null : countyDemo(stateAbbr, name); return d ? d.name : name; }
 
 async function loadRealGeography() {
   try {
@@ -1003,6 +1076,8 @@ async function loadRealGeography() {
       REAL_COUNTY_PATHS[abbr] = REAL_COUNTY_PATHS[abbr] || {};
       REAL_COUNTY_XY[abbr] = REAL_COUNTY_XY[abbr] || {};
       REAL_COUNTY_BOUNDS[abbr] = REAL_COUNTY_BOUNDS[abbr] || {};
+      REAL_COUNTY_FIPS[abbr] = REAL_COUNTY_FIPS[abbr] || {};
+      REAL_COUNTY_FIPS[abbr][name] = fips5;
       REAL_COUNTY_PATHS[abbr][name] = d;
       REAL_COUNTY_XY[abbr][name] = centroid;
       const bw = (b[1][0]-b[0][0]), bh = (b[1][1]-b[0][1]);
@@ -1128,6 +1203,40 @@ function interpolateColor(t, from, to){
 const CHOROPLETH_LOW = 'DCD3B8';  // matches --map-land, i.e. "no data" looks like plain land
 const CHOROPLETH_HIGH = '14213D'; // --ink, i.e. "most data" is darkest
 
+// ---- "Shade by": record count (default) or a demographic measure ----
+let shadeBy = 'records';
+const SHADE_METRICS = {
+  perCapita: { label: 'tracked $ per resident', fmt: v => '$' + Math.round(v).toLocaleString('en-US') },
+  population: { label: 'population', fmt: v => fmtPop(v) },
+  medianHouseholdIncome: { label: 'median household income', fmt: v => '$' + Math.round(v).toLocaleString('en-US') },
+  povertyRate: { label: 'poverty rate', fmt: v => v.toFixed(1) + '%' },
+  unemploymentRate: { label: 'unemployment rate', fmt: v => v.toFixed(1) + '%' },
+};
+const NO_DATA_FILL = '#EFEBE0';
+// Selected demographic measure for one area, or null if unknown. trackedTotal
+// is the dollar sum of the area's records matching the current filters.
+function shadeValue(demo, trackedTotal){
+  if (!demo) return null;
+  if (shadeBy === 'perCapita') return (demo.population && trackedTotal) ? trackedTotal / demo.population : null;
+  return demo[shadeBy] == null ? null : demo[shadeBy];
+}
+// Linear scale between the lowest and highest known values currently in view.
+function shadeScale(values){
+  const known = values.filter(v => v != null);
+  const min = known.length ? Math.min(...known) : 0, max = known.length ? Math.max(...known) : 0;
+  return { min, max, empty: !known.length,
+    fillFor: v => v == null ? NO_DATA_FILL : interpolateColor(0.12 + 0.88 * (max > min ? (v - min) / (max - min) : 1), CHOROPLETH_LOW, CHOROPLETH_HIGH) };
+}
+function shadeTip(v){ return v == null ? `${SHADE_METRICS[shadeBy].label}: no data` : `${SHADE_METRICS[shadeBy].label}: <b>${SHADE_METRICS[shadeBy].fmt(v)}</b>`; }
+function updateShadeLegend(scale){
+  const lo = document.getElementById('map_scaleLow'), hi = document.getElementById('map_scaleHigh');
+  if (shadeBy === 'records' || !scale || scale.empty) { lo.textContent = 'Fewer records'; hi.textContent = 'More records'; return; }
+  const m = SHADE_METRICS[shadeBy];
+  if (scale.min === scale.max) { lo.textContent = `${m.label}: ${m.fmt(scale.min)} (only one area has data)`; hi.textContent = ''; return; }
+  lo.textContent = `Lower ${m.label} (${m.fmt(scale.min)})`;
+  hi.textContent = `Higher (${m.fmt(scale.max)})`;
+}
+
 function showTooltip(evt, html){
   const tip = document.getElementById('map_mapTooltip');
   tip.innerHTML = html;
@@ -1147,22 +1256,32 @@ function hideTooltip(){
 function renderMap(){
   const svg = document.getElementById('map_svg');
   let dots = '', land = '', cellsAndLabels = '';
+  let shade = null; // demographic shading scale, when "Shade by" isn't record count
 
   if (viewLevel === 'nation') {
     // National view: choropleth-shade each state by its matching record count.
     // States with zero records render as plain, unshaded land -- not clickable
     // for drill-down, since there's nothing there yet (keeps this genuinely
     // multi-state-ready rather than Maryland-hardcoded).
-    const counts = {};
+    const counts = {}, totals = {};
     Object.keys(REAL_STATE_PATHS).forEach(abbr => {
-      counts[abbr] = records.filter(r => r.state === abbr && passesFilters(r)).length;
+      const matching = records.filter(r => r.state === abbr && passesFilters(r));
+      counts[abbr] = matching.length;
+      totals[abbr] = matching.reduce((s,r)=>s+(r.amount||0),0);
     });
     const maxCount = Math.max(1, ...Object.values(counts));
+    const values = {};
+    if (shadeBy !== 'records') {
+      Object.keys(REAL_STATE_PATHS).forEach(abbr => { values[abbr] = shadeValue(DEMO.stateByAbbr[abbr], totals[abbr]); });
+      shade = shadeScale(Object.values(values));
+    }
     let statePaths = '';
     Object.entries(REAL_STATE_PATHS).forEach(([abbr, d])=>{
       const c = counts[abbr] || 0;
-      const fill = c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : `#${CHOROPLETH_LOW}`;
-      statePaths += `<path class="state-shape" data-state="${abbr}" data-count="${c}" d="${d}" fill="${fill}" stroke="#B8AC8A" stroke-width="0.7" />`;
+      const fill = shade ? shade.fillFor(values[abbr])
+        : (c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : `#${CHOROPLETH_LOW}`);
+      const tip = shade ? shadeTip(values[abbr]) : '';
+      statePaths += `<path class="state-shape" data-state="${abbr}" data-count="${c}" data-metric="${tip.replace(/"/g,'&quot;')}" d="${d}" fill="${fill}" stroke="#B8AC8A" stroke-width="0.7" />`;
     });
     land = `<g>${statePaths}</g>`;
 
@@ -1178,7 +1297,7 @@ function renderMap(){
     });
     const maxCount = Math.max(1, ...Object.values(countyCounts));
     const built = buildCountyCellMarkup(countyCounts, maxCount);
-    land = built.land; cellsAndLabels = built.cellsAndLabels;
+    land = built.land; cellsAndLabels = built.cellsAndLabels; shade = built.shade;
 
   } else if (viewLevel === 'county') {
     // A county is selected -- ONLY genuinely geocoded (precise) records become
@@ -1199,6 +1318,7 @@ function renderMap(){
   }
 
   svg.innerHTML = `${land}${cellsAndLabels}${dots}`;
+  updateShadeLegend(shade);
 
   svg.querySelectorAll('.dot').forEach(el=>{
     el.addEventListener('click', (e)=>{ e.stopPropagation(); location.hash = '#record/'+encodeURIComponent(el.getAttribute('data-id')); });
@@ -1208,10 +1328,11 @@ function renderMap(){
   svg.querySelectorAll('.county-cell').forEach(el=>{
     el.addEventListener('click', ()=>{ zoomToCounty(el.getAttribute('data-county')); });
     el.addEventListener('mousemove', (e)=>{
-      const name = el.getAttribute('data-county');
+      const name = countyDisplayName(selectedState, el.getAttribute('data-county'));
       const c = el.getAttribute('data-count');
       const t = el.getAttribute('data-total');
-      showTooltip(e, `<b>${name}</b><br>${c} record${c==='1'?'':'s'}${t && t!=='0' ? ' &middot; ' + fmt(parseFloat(t)) : ''}`);
+      const metric = el.getAttribute('data-metric');
+      showTooltip(e, `<b>${name}</b><br>${c} record${c==='1'?'':'s'}${t && t!=='0' ? ' &middot; ' + fmt(parseFloat(t)) : ''}${metric ? '<br>' + metric : ''}`);
     });
     el.addEventListener('mouseleave', hideTooltip);
   });
@@ -1219,7 +1340,8 @@ function renderMap(){
     const abbr = el.getAttribute('data-state');
     const c = el.getAttribute('data-count');
     el.addEventListener('click', (e)=>{ e.stopPropagation(); zoomToState(abbr); });
-    el.addEventListener('mousemove', (e)=> showTooltip(e, `<b>${abbr}</b><br>${c} record${c==='1'?'':'s'}${c==='0' ? ' \u2014 click to explore counties' : ' \u2014 click to explore'}`));
+    const metric = el.getAttribute('data-metric');
+    el.addEventListener('mousemove', (e)=> showTooltip(e, `<b>${STATE_ABBR_TO_NAME[abbr] || abbr}</b><br>${c} record${c==='1'?'':'s'}${c==='0' ? ' \u2014 click to explore counties' : ' \u2014 click to explore'}${metric ? '<br>' + metric : ''}`));
     el.addEventListener('mouseleave', hideTooltip);
   });
   if (!vbAnimating) applyViewBox();
@@ -1231,27 +1353,37 @@ function buildCountyCellMarkup(countyCounts, maxCount){
     countyTotals[name] = records.filter(r => r._x !== undefined && (r.county||'').includes(name) && passesFilters(r) && r.amount).reduce((s,r)=>s+r.amount,0);
   });
   const noShading = Object.keys(countyCounts).length === 0;
+  // Demographic shading, scaled across this state's counties.
+  const values = {};
+  let shade = null;
+  if (!noShading && shadeBy !== 'records') {
+    Object.keys(countyCounts).forEach(name => { values[name] = shadeValue(countyDemo(selectedState, name), countyTotals[name]); });
+    shade = shadeScale(Object.values(values));
+  }
+  const cellFill = (name, c, fallbackNoData) => shade ? shade.fillFor(values[name])
+    : (c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : fallbackNoData);
+  const metricAttr = name => shade ? ` data-metric="${shadeTip(values[name]).replace(/"/g,'&quot;')}"` : '';
 
   if (usingRealGeo) {
     let cells = '';
     Object.entries(REAL_COUNTY_PATHS[selectedState]||{}).forEach(([name, d])=>{
       const active = selectedCounty === name;
       const c = countyCounts[name] || 0;
-      const fill = noShading ? 'var(--map-land)' : (c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : `#${CHOROPLETH_LOW}`);
-      cells += `<path class="county-cell" data-county="${name.replace(/"/g,'&quot;')}" data-count="${c}" data-total="${countyTotals[name]||0}" d="${d}" fill="${active ? 'rgba(150,114,30,0.25)' : fill}" stroke="${active ? 'var(--gold)' : '#B8AC8A'}" stroke-width="${active ? 1.8 : 0.7}" />`;
+      const fill = noShading ? 'var(--map-land)' : cellFill(name, c, `#${CHOROPLETH_LOW}`);
+      cells += `<path class="county-cell" data-county="${name.replace(/"/g,'&quot;')}" data-count="${c}" data-total="${countyTotals[name]||0}"${metricAttr(name)} d="${d}" fill="${active ? 'rgba(150,114,30,0.25)' : fill}" stroke="${active ? 'var(--gold)' : '#B8AC8A'}" stroke-width="${active ? 1.8 : 0.7}" />`;
     });
     let labels = '';
     Object.entries(REAL_COUNTY_XY[selectedState]||{}).forEach(([name,[x,y]])=>{
-      labels += `<text x="${x}" y="${y}" font-size="${labelFontSize(7)}" text-anchor="middle" fill="#6B6459" font-family="IBM Plex Mono, monospace" pointer-events="none">${shortCountyLabel(name)}</text>`;
+      labels += `<text x="${x}" y="${y}" font-size="${labelFontSize(7)}" text-anchor="middle" fill="#6B6459" font-family="IBM Plex Mono, monospace" pointer-events="none">${shortCountyLabel(countyDisplayName(selectedState, name))}</text>`;
     });
-    return { land: '', cellsAndLabels: `<g>${cells}${labels}</g>` };
+    return { land: '', cellsAndLabels: `<g>${cells}${labels}</g>`, shade };
   } else {
     let cells = '';
     Object.entries(COUNTY_CELLS).forEach(([name, d])=>{
       const active = selectedCounty === name;
       const c = countyCounts[name] || 0;
-      const fill = noShading ? 'transparent' : (c > 0 ? interpolateColor(0.25 + 0.75*(c/maxCount), CHOROPLETH_LOW, CHOROPLETH_HIGH) : 'transparent');
-      cells += `<path class="county-cell" data-county="${name.replace(/"/g,'&quot;')}" data-count="${c}" data-total="${countyTotals[name]||0}" d="${d}" fill="${active ? 'rgba(150,114,30,0.25)' : fill}" stroke="${active ? 'var(--gold)' : '#B8AC8A'}" stroke-width="${active ? 1.8 : 0.9}" stroke-dasharray="${active || (!noShading && c>0) ? 'none' : '2,1.5'}" />`;
+      const fill = noShading ? 'transparent' : cellFill(name, c, 'transparent');
+      cells += `<path class="county-cell" data-county="${name.replace(/"/g,'&quot;')}" data-count="${c}" data-total="${countyTotals[name]||0}"${metricAttr(name)} d="${d}" fill="${active ? 'rgba(150,114,30,0.25)' : fill}" stroke="${active ? 'var(--gold)' : '#B8AC8A'}" stroke-width="${active ? 1.8 : 0.9}" stroke-dasharray="${active || (!noShading && c>0) ? 'none' : '2,1.5'}" />`;
     });
     let labels = '';
     Object.entries(COUNTY_XY).forEach(([name,[x,y]])=>{
@@ -1264,7 +1396,7 @@ function buildCountyCellMarkup(countyCounts, maxCount){
     const cellsAndLabels = `
       <defs><clipPath id="landClip"><path d="${WESTERN_PATH}" /><path d="${EASTERN_PATH}" /></clipPath></defs>
       <g clip-path="url(#landClip)">${cells}${labels}</g>`;
-    return { land, cellsAndLabels };
+    return { land, cellsAndLabels, shade };
   }
 }
 
@@ -1436,7 +1568,7 @@ function renderContextHeader(){
     el.style.display = 'block';
     el.innerHTML = `<div class="county-header">
       <div class="county-header-title serif">United States</div>
-      <div class="county-header-stats mono"><span>Click any state to explore its counties \u2014 shading shows record counts where they exist.</span></div>
+      <div class="county-header-stats mono"><span>Click any state to explore its counties. Shading shows the measure picked in “Shade”; hover a state for details.</span></div>
     </div>`;
     return;
   }
@@ -1448,6 +1580,7 @@ function renderContextHeader(){
     const stateOnly = stateRecords.filter(r => r.geoLevel === 'state');
     const total = withCounty.filter(r=>r.amount).reduce((s,r)=>s+r.amount,0);
     const stateName = STATE_ABBR_TO_NAME[selectedState] || selectedState;
+    const stateDemo = demoHeaderHTML(DEMO.stateByAbbr[selectedState], stateRecords.reduce((s,r)=>s+(r.amount||0),0));
     if(viewingBucket === 'state-unspecified'){
       el.innerHTML = `<div class="county-header">
         <div><span class="back-link" onclick="exitBucket()">\u2190 Back to ${stateName}</span></div>
@@ -1459,6 +1592,7 @@ function renderContextHeader(){
         <div><span class="back-link" onclick="exitToNation()">\u2190 Back to USA</span></div>
         <div class="county-header-title serif">${stateName}</div>
         <div class="county-header-stats mono"><span>No records collected for this state yet \u2014 county outlines below are shown for reference.</span></div>
+        ${stateDemo}
       </div>`;
     } else {
       el.innerHTML = `<div class="county-header">
@@ -1469,6 +1603,7 @@ function renderContextHeader(){
           <span><b>${fmt(total)}</b> tracked</span>
           ${stateOnly.length ? `<span class="bucket-link" onclick="showBucket('state-unspecified')">+ <b>${stateOnly.length}</b> statewide (no county specified) \u2192</span>` : ''}
         </div>
+        ${stateDemo}
       </div>`;
     }
     return;
@@ -1480,6 +1615,8 @@ function renderContextHeader(){
     const precise = inCounty.filter(r=>r.geoLevel==='precise');
     const countyOnly = inCounty.filter(r=>r.geoLevel==='county');
     const total = precise.filter(r=>r.amount).reduce((s,r)=>s+r.amount,0);
+    const countyName = countyDisplayName(selectedState, selectedCounty);
+    const countyDemoHTML = demoHeaderHTML(countyDemo(selectedState, selectedCounty), inCounty.reduce((s,r)=>s+(r.amount||0),0));
     if(viewingBucket === 'county-unspecified'){
       el.innerHTML = `<div class="county-header">
         <div><span class="back-link" onclick="exitBucket()">\u2190 Back to ${selectedCounty}</span></div>
@@ -1491,14 +1628,15 @@ function renderContextHeader(){
       precise.forEach(r=>{ sectorCounts[r.category]=(sectorCounts[r.category]||0)+1; });
       const topSector = Object.entries(sectorCounts).sort((a,b)=>b[1]-a[1])[0];
       el.innerHTML = `<div class="county-header">
-        <div><span class="back-link" onclick="exitCountyView()">\u2190 Back to Maryland</span></div>
-        <div class="county-header-title serif">${selectedCounty}</div>
+        <div><span class="back-link" onclick="exitCountyView()">\u2190 Back to ${STATE_ABBR_TO_NAME[selectedState] || selectedState}</span></div>
+        <div class="county-header-title serif">${countyName}</div>
         <div class="county-header-stats mono">
           <span><b>${precise.length}</b> geocoded record${precise.length===1?'':'s'}</span>
           <span><b>${fmt(total)}</b> tracked</span>
           ${topSector ? `<span>top sector: <b>${labelize(topSector[0])}</b> (${topSector[1]})</span>` : ''}
           ${countyOnly.length ? `<span class="bucket-link" onclick="showBucket('county-unspecified')">+ <b>${countyOnly.length}</b> without a precise address \u2192</span>` : ''}
         </div>
+        ${countyDemoHTML}
       </div>`;
     }
     return;
@@ -1547,11 +1685,12 @@ document.getElementById('map_filterMagnitude').addEventListener('change', e=>{ a
 document.getElementById('map_filterYear').addEventListener('change', e=>{ activeYear=e.target.value; showCount=15; renderFeed(); });
 
 document.getElementById('map_sortBy').addEventListener('change', e=>{ sortMode=e.target.value; showCount=15; renderFeed(); });
+document.getElementById('map_shadeBy').addEventListener('change', e=>{ shadeBy=e.target.value; hideTooltip(); renderMap(); });
 document.getElementById('map_showMoreBtn').addEventListener('click', ()=>{ showCount+=25; renderFeed(); });
 
 initMapControls();
 loadRealGeography(); // runs in parallel with the data load; whichever finishes second re-places the dots
-window.mapInitData = function(){ initMapFilters(); assignDotPositions(); renderStats(); renderLegend(); renderFeed(); };
+window.mapInitData = function(){ if(!DEMO.acsRelease) document.getElementById('map_shadeBy').style.display = 'none'; initMapFilters(); assignDotPositions(); renderStats(); renderLegend(); renderFeed(); };
 
 // Expose functions referenced by inline onclick="" attributes in the map markup
 // (inline handlers execute in global scope, so they need to escape this IIFE).
